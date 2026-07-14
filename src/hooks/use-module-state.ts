@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { StyleKey } from "@/lib/disc";
+import type { ScenarioTurn } from "@/lib/scenario";
 
 const STORAGE_KEY = "csm.v1";
 
@@ -30,7 +31,8 @@ export interface ModuleState {
   matchAnswers: Record<StyleKey, StyleKey | null>;
   emailAnswers: Record<number, StyleKey | null>;
   rewriter: Partial<Record<StyleKey, RewriterEntry>>;
-  scenarioChoices: number[];
+  scenarioChoices: number[]; // legacy — retained for older saved sessions
+  scenarioPath: ScenarioTurn[];
   team: TeamMember[];
   targetStyle: StyleKey | null;
   capstoneDraft: string;
@@ -52,6 +54,7 @@ const initial: ModuleState = {
   emailAnswers: {},
   rewriter: {},
   scenarioChoices: [],
+  scenarioPath: [],
   team: [],
   targetStyle: null,
   capstoneDraft: "",
