@@ -172,3 +172,9 @@
 @utility shadow-brand-lg {
   box-shadow: var(--shadow-brand-lg);
 }
+
+/* Print styles: hide chrome, show only content when learner prints */
+@media print {
+  header, footer, nav, [role="progressbar"], .print\:hidden { display: none !important; }
+  body { background: white !important; }
+}
