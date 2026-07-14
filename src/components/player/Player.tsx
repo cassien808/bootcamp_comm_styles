@@ -2649,6 +2649,71 @@ function RecapScreen({
           </div>
         </div>
       )}
+
+      <div className="mt-6">
+        <H2>If you see this — try this</H2>
+        <Lead>
+          A pocket reference for the next time someone's style doesn't match
+          yours. Print it or screenshot it.
+        </Lead>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {(
+            [
+              {
+                style: "d",
+                see: "They cut you off, ask \"what's the ask?\", or push for a decision now.",
+                try: "Lead with the bottom line. Offer 2–3 options and your pick. Name the deadline. Skip the warm-up.",
+              },
+              {
+                style: "i",
+                see: "They open with a story, use lots of emotion words, or reply with an emoji.",
+                try: "Greet them by name. Frame the ask as a shared win. Invite their take. End with encouragement, not just a task.",
+              },
+              {
+                style: "s",
+                see: "They go quiet, say \"whatever works,\" or agree quickly without follow-up questions.",
+                try: "Acknowledge them first. Give the why. Signal support is available. Ask what would help — and mean it.",
+              },
+              {
+                style: "c",
+                see: "They ask for the numbers, question the assumptions, or want it in writing.",
+                try: "Lead with context and criteria. Use precise words. Show your steps. Say how you'll both know it's done.",
+              },
+            ] as const
+          ).map((row) => (
+            <div
+              key={row.style}
+              className="rounded-xl border p-4"
+              style={{
+                borderColor: STYLES[row.style].colorVar,
+                backgroundColor: STYLES[row.style].softVar,
+              }}
+            >
+              <div className="mb-2">
+                <StyleBadge style={row.style} size="sm" />
+              </div>
+              <div className="mb-2 text-sm">
+                <span
+                  className="mr-1 text-xs font-semibold uppercase tracking-wider"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
+                  See
+                </span>
+                {row.see}
+              </div>
+              <div className="text-sm">
+                <span
+                  className="mr-1 text-xs font-semibold uppercase tracking-wider"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
+                  Try
+                </span>
+                {row.try}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
