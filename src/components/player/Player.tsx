@@ -1391,6 +1391,15 @@ function MatchScreen({
         into. One answer per style. Example: the Dominant style's blind spot is
         moving so fast that people feel run over.
       </Lead>
+      <ActivityGuide
+        steps={[
+          "Look at the style at the top of each card.",
+          "Read the four blind-spot sentences under it.",
+          "Pick the one sentence that fits that style best.",
+          "Do all four, then tap Check answers.",
+        ]}
+        example='Under Steady, "Says yes when they mean not yet" is the blind spot — Steady types avoid friction and defer too long.'
+      />
       <div className="grid gap-3 sm:grid-cols-2">
         {STYLE_ORDER.map((k) => (
           <div
@@ -1401,7 +1410,11 @@ function MatchScreen({
             <div className="mb-2 flex items-center gap-2">
               <StyleBadge style={k} />
             </div>
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div
+              className="grid gap-2 sm:grid-cols-2"
+              role="radiogroup"
+              aria-label={`Pick the blind spot for ${STYLES[k].name}`}
+            >
               {STYLE_ORDER.map((bk) => {
                 const active = state.matchAnswers[k] === bk;
                 const right = checked && bk === k;
@@ -1410,6 +1423,16 @@ function MatchScreen({
                   <button
                     key={bk}
                     onClick={() => set(k, bk)}
+                    onKeyDown={handleRadioGroupKey}
+                    role="radio"
+                    aria-checked={active}
+                    tabIndex={
+                      active ||
+                      (state.matchAnswers[k] === null && bk === STYLE_ORDER[0])
+                        ? 0
+                        : -1
+                    }
+                    aria-label={`For ${STYLES[k].name}: ${STYLES[bk].blindSpot}`}
                     className="rounded-md border px-3 py-2 text-left text-sm"
                     style={{
                       borderColor: right
