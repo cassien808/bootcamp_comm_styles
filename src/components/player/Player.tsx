@@ -130,6 +130,13 @@ export function Player() {
         )}
       </div>
       <CheatSheetDrawer open={cheatOpen} onClose={() => setCheatOpen(false)} />
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {`Now on step ${cur + 1} of ${total}: ${SCREEN_TITLES[screenKey]}`}
+      </div>
     </div>
   );
 }
@@ -1053,6 +1060,24 @@ function SelfScreen({
   update: ReturnType<typeof useModuleState>["update"];
 }) {
   const s = state.selfStyle ? STYLES[state.selfStyle] : null;
+  const stressShift: Record<StyleKey, { calm: string; pressure: string }> = {
+    d: {
+      calm: "Direct but open — asks for input, then decides.",
+      pressure: "Cuts input short. Barks the ask. People feel run over.",
+    },
+    i: {
+      calm: "Warm, storytelling, brings people along.",
+      pressure: "Talks more, listens less. Overpromises to keep the mood up.",
+    },
+    s: {
+      calm: "Steady presence. Protects the team's footing.",
+      pressure: "Goes quiet. Says yes to buy peace, then resents it later.",
+    },
+    c: {
+      calm: "Precise, thoughtful, catches what others miss.",
+      pressure: "Retreats into detail. Delays a call that just needs making.",
+    },
+  };
   return (
     <div className="max-w-2xl">
       <H2>What's your default under pressure?</H2>
@@ -1084,6 +1109,40 @@ function SelfScreen({
                 The risk to watch
               </div>
               <div className="text-sm">{s.risk}</div>
+            </div>
+          </div>
+          <div
+            className="mt-4 grid gap-3 rounded-md border p-3 sm:grid-cols-2"
+            style={{
+              borderColor: "var(--warm-gray)",
+              backgroundColor: "var(--off-white)",
+            }}
+          >
+            <div>
+              <div
+                className="mb-1 text-xs font-semibold uppercase tracking-wider"
+                style={{ color: "var(--core)" }}
+              >
+                On a calm day
+              </div>
+              <div className="text-sm">{stressShift[s.key].calm}</div>
+            </div>
+            <div>
+              <div
+                className="mb-1 text-xs font-semibold uppercase tracking-wider"
+                style={{ color: "var(--rucksack)" }}
+              >
+                Under pressure
+              </div>
+              <div className="text-sm">{stressShift[s.key].pressure}</div>
+            </div>
+            <div
+              className="sm:col-span-2 text-xs"
+              style={{ color: "var(--muted-foreground)" }}
+            >
+              Most of us look like the left column most of the time. The
+              stretch is noticing when we've shifted to the right — and coming
+              back on purpose.
             </div>
           </div>
           <div className="mt-4 border-t pt-4" style={{ borderColor: "var(--warm-gray)" }}>
@@ -2325,6 +2384,22 @@ function TransferScreen({
     update({ reminderDownloaded: true });
   };
 
+  const downloadCheckIn = () => {
+    const flex = state.targetStyle
+      ? `Reflect: how did your ${styleName}-flex land with ${who}? What shifted?`
+      : `Reflect: how did your flex with ${who} go? What shifted?`;
+    const ics = buildReminderIcs({
+      who,
+      flex,
+      commitment: state.commitment || defaultCommit,
+      daysFromNow: 30,
+    });
+    downloadIcs(
+      `flex-checkin-${who.replace(/\s+/g, "-").toLowerCase()}.ics`,
+      ics,
+    );
+  };
+
   return (
     <div className="max-w-2xl">
       <H2>Your 7-day flex</H2>
@@ -2354,11 +2429,22 @@ function TransferScreen({
         >
           {state.reminderDownloaded ? "Downloaded — download again" : "Remind me in 7 days (.ics)"}
         </button>
+        <button
+          onClick={downloadCheckIn}
+          className="ml-2 mt-3 rounded-md border px-4 py-2 text-sm font-semibold"
+          style={{
+            borderColor: "var(--foundation)",
+            color: "var(--foundation)",
+          }}
+        >
+          Add a 30-day check-in
+        </button>
         <div
           className="mt-2 text-xs"
           style={{ color: "var(--muted-foreground)" }}
         >
-          Opens in Outlook, Google Calendar, or Apple Calendar. Nothing is
+          Both open in Outlook, Google Calendar, or Apple Calendar. The 7-day
+          nudges you to try it. The 30-day asks you what shifted. Nothing is
           emailed. Nothing is tracked.
         </div>
         <div
@@ -2563,6 +2649,71 @@ function RecapScreen({
           </div>
         </div>
       )}
+
+      <div className="mt-6">
+        <H2>If you see this — try this</H2>
+        <Lead>
+          A pocket reference for the next time someone's style doesn't match
+          yours. Print it or screenshot it.
+        </Lead>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {(
+            [
+              {
+                style: "d",
+                see: "They cut you off, ask \"what's the ask?\", or push for a decision now.",
+                try: "Lead with the bottom line. Offer 2–3 options and your pick. Name the deadline. Skip the warm-up.",
+              },
+              {
+                style: "i",
+                see: "They open with a story, use lots of emotion words, or reply with an emoji.",
+                try: "Greet them by name. Frame the ask as a shared win. Invite their take. End with encouragement, not just a task.",
+              },
+              {
+                style: "s",
+                see: "They go quiet, say \"whatever works,\" or agree quickly without follow-up questions.",
+                try: "Acknowledge them first. Give the why. Signal support is available. Ask what would help — and mean it.",
+              },
+              {
+                style: "c",
+                see: "They ask for the numbers, question the assumptions, or want it in writing.",
+                try: "Lead with context and criteria. Use precise words. Show your steps. Say how you'll both know it's done.",
+              },
+            ] as const
+          ).map((row) => (
+            <div
+              key={row.style}
+              className="rounded-xl border p-4"
+              style={{
+                borderColor: STYLES[row.style].colorVar,
+                backgroundColor: STYLES[row.style].softVar,
+              }}
+            >
+              <div className="mb-2">
+                <StyleBadge style={row.style} size="sm" />
+              </div>
+              <div className="mb-2 text-sm">
+                <span
+                  className="mr-1 text-xs font-semibold uppercase tracking-wider"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
+                  See
+                </span>
+                {row.see}
+              </div>
+              <div className="text-sm">
+                <span
+                  className="mr-1 text-xs font-semibold uppercase tracking-wider"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
+                  Try
+                </span>
+                {row.try}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
