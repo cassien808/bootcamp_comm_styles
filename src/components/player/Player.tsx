@@ -1409,7 +1409,18 @@ function MatchScreen({
 }) {
   const [checked, setChecked] = useState(false);
   const set = (k: StyleKey, blindStyle: StyleKey) => {
-    update({ matchAnswers: { ...state.matchAnswers, [k]: blindStyle } });
+    const next = { ...state.matchAnswers, [k]: blindStyle };
+    update({ matchAnswers: next });
+    if (STYLE_ORDER.every((s) => next[s] !== null)) {
+      focusNext('[data-focus="match-check"]');
+    } else {
+      const nextStyle = STYLE_ORDER.find((s) => next[s] === null);
+      if (nextStyle) {
+        focusNext(
+          `[data-focus-group="match-${nextStyle}"] [role="radio"]`,
+        );
+      }
+    }
   };
   const allAnswered = STYLE_ORDER.every((k) => state.matchAnswers[k] !== null);
   return (
@@ -1436,6 +1447,7 @@ function MatchScreen({
             key={k}
             className="rounded-xl border bg-white p-4"
             style={{ borderColor: "var(--warm-gray)" }}
+            data-focus-group={`match-${k}`}
           >
             <div className="mb-2 flex items-center gap-2">
               <StyleBadge style={k} />
@@ -1488,6 +1500,7 @@ function MatchScreen({
         <button
           disabled={!allAnswered}
           onClick={() => setChecked(true)}
+          data-focus="match-check"
           className="rounded-md border px-4 py-2 text-sm font-semibold disabled:opacity-40"
           style={{
             borderColor: "var(--foundation)",
