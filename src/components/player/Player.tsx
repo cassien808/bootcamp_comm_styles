@@ -538,7 +538,9 @@ function gate(
         (s.capstoneCoach !== null || s.capstoneDraft.trim().length >= 20)
       );
     case "transfer":
-      return s.commitment.trim().length > 5;
+      // Learners who want to keep the suggested wording shouldn't be blocked —
+      // the default commitment (auto-seeded on the transfer screen) is enough.
+      return s.commitment.trim().length > 0;
     case "post":
       return s.confidencePost !== null;
     default:
