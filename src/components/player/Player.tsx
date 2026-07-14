@@ -719,6 +719,82 @@ function StylePickerImpl({ value, onChange, label }: { value: StyleKey | null; o
 
 // ----- Screens -----
 
+// Reusable "how this works" banner shown at the top of each activity so
+// learners always know what to do next and what a good answer looks like.
+function ActivityGuide({
+  steps,
+  example,
+}: {
+  steps: string[];
+  example: string;
+}) {
+  return (
+    <div
+      className="mb-4 rounded-lg border-l-4 p-3 text-sm"
+      style={{
+        borderLeftColor: "var(--deep)",
+        backgroundColor: "var(--sky)",
+        color: "var(--foundation)",
+      }}
+      role="note"
+      aria-label="How this activity works"
+    >
+      <div
+        className="mb-1 text-xs font-semibold uppercase tracking-wider"
+        style={{ color: "var(--deep)" }}
+      >
+        How this works
+      </div>
+      <ol className="ml-4 list-decimal space-y-0.5">
+        {steps.map((s, i) => (
+          <li key={i}>{s}</li>
+        ))}
+      </ol>
+      <div className="mt-2 text-xs" style={{ color: "var(--foreground)" }}>
+        <b>Example:</b> <span className="italic">{example}</span>
+      </div>
+    </div>
+  );
+}
+
+// Shared keyboard handler for a group of single-select buttons.
+// Wrap the buttons' parent in role="radiogroup" and give each button
+// role="radio" + aria-checked, then attach this to onKeyDown.
+// Supports Arrow keys, Home, and End. Enter/Space still activate via native button.
+function handleRadioGroupKey(e: React.KeyboardEvent<HTMLButtonElement>) {
+  const key = e.key;
+  if (
+    key !== "ArrowRight" &&
+    key !== "ArrowLeft" &&
+    key !== "ArrowUp" &&
+    key !== "ArrowDown" &&
+    key !== "Home" &&
+    key !== "End"
+  ) {
+    return;
+  }
+  e.preventDefault();
+  const group = (e.currentTarget as HTMLElement).closest(
+    '[role="radiogroup"]',
+  ) as HTMLElement | null;
+  if (!group) return;
+  const radios = Array.from(
+    group.querySelectorAll<HTMLButtonElement>('[role="radio"]'),
+  ).filter((r) => !r.disabled);
+  if (radios.length === 0) return;
+  const cur = radios.indexOf(e.currentTarget);
+  let next = cur;
+  if (key === "ArrowRight" || key === "ArrowDown")
+    next = (cur + 1) % radios.length;
+  else if (key === "ArrowLeft" || key === "ArrowUp")
+    next = (cur - 1 + radios.length) % radios.length;
+  else if (key === "Home") next = 0;
+  else if (key === "End") next = radios.length - 1;
+  const target = radios[next];
+  target.focus();
+  target.click();
+}
+
 function WelcomeScreen({ onStart }: { onStart: () => void }) {
   return (
     <div className="grid gap-8 lg:grid-cols-[1.15fr_1fr] lg:items-center lg:gap-12">
@@ -1199,6 +1275,14 @@ function SortScreen({
         A quick warm-up. For each trait below, tap the style it fits best
         (D = Dominant, I = Influencer, S = Steady, C = Conscientious).
       </Lead>
+      <ActivityGuide
+        steps={[
+          "Read each trait word on the left.",
+          "Pick the letter that best fits: D, I, S, or C.",
+          "Answer all 16, then tap Check answers.",
+        ]}
+        example='"Blunt" → D (Dominant). Dominant readers speak short and direct — bluntness is their signature.'
+      />
       <div className="grid gap-2 sm:grid-cols-2">
         {ALL_TRAITS.map(({ trait, style }) => {
           const picked = state.sortAnswers[trait];
@@ -1218,13 +1302,21 @@ function SortScreen({
               <span className="text-sm font-semibold" style={{ color: "var(--foundation)" }}>
                 {trait}
               </span>
-              <div className="flex flex-wrap gap-1.5">
+              <div
+                className="flex flex-wrap gap-1.5"
+                role="radiogroup"
+                aria-label={`Pick a style for ${trait}`}
+              >
                 {STYLE_ORDER.map((k) => {
                   const active = picked === k;
                   return (
                     <button
                       key={k}
                       onClick={() => setTrait(trait, k)}
+                      onKeyDown={handleRadioGroupKey}
+                      role="radio"
+                      aria-checked={active}
+                      tabIndex={active || (!picked && k === STYLE_ORDER[0]) ? 0 : -1}
                       aria-label={`Mark ${trait} as ${STYLES[k].name}`}
                       className="rounded-md border px-2.5 py-1 text-xs font-semibold"
                       style={{
@@ -1299,6 +1391,15 @@ function MatchScreen({
         into. One answer per style. Example: the Dominant style's blind spot is
         moving so fast that people feel run over.
       </Lead>
+      <ActivityGuide
+        steps={[
+          "Look at the style at the top of each card.",
+          "Read the four blind-spot sentences under it.",
+          "Pick the one sentence that fits that style best.",
+          "Do all four, then tap Check answers.",
+        ]}
+        example='Under Steady, "Says yes when they mean not yet" is the blind spot — Steady types avoid friction and defer too long.'
+      />
       <div className="grid gap-3 sm:grid-cols-2">
         {STYLE_ORDER.map((k) => (
           <div
@@ -1309,7 +1410,11 @@ function MatchScreen({
             <div className="mb-2 flex items-center gap-2">
               <StyleBadge style={k} />
             </div>
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div
+              className="grid gap-2 sm:grid-cols-2"
+              role="radiogroup"
+              aria-label={`Pick the blind spot for ${STYLES[k].name}`}
+            >
               {STYLE_ORDER.map((bk) => {
                 const active = state.matchAnswers[k] === bk;
                 const right = checked && bk === k;
@@ -1318,6 +1423,16 @@ function MatchScreen({
                   <button
                     key={bk}
                     onClick={() => set(k, bk)}
+                    onKeyDown={handleRadioGroupKey}
+                    role="radio"
+                    aria-checked={active}
+                    tabIndex={
+                      active ||
+                      (state.matchAnswers[k] === null && bk === STYLE_ORDER[0])
+                        ? 0
+                        : -1
+                    }
+                    aria-label={`For ${STYLES[k].name}: ${STYLES[bk].blindSpot}`}
                     className="rounded-md border px-3 py-2 text-left text-sm"
                     style={{
                       borderColor: right
@@ -1535,6 +1650,15 @@ function RewriterScreen({
         it sounds like that style, then tap <b>Get feedback</b>. Land 3 of 5
         tells for each style to finish.
       </Lead>
+      <ActivityGuide
+        steps={[
+          "Pick a style tab (Dominant, Influencer, Steady, or Conscientious).",
+          "Rewrite the bland message so it sounds like that style. Aim for the 5 tells shown.",
+          "Tap Get feedback — AI scores how many tells you landed and suggests a rewrite.",
+          "Land at least 3 of 5 for each style to finish.",
+        ]}
+        example={`For Dominant, try: "Deadline moved up. Need your piece by Wed EOD. Two options if that's tight — reply which one works." Short, direct, deadline first.`}
+      />
       {doneCount > 0 && (
         <CompletionBanner
           done={allDone}
@@ -1736,6 +1860,15 @@ function ScenarioScreen({
         Jordan is a Steady-style direct report. Since the reorg, they've gone
         quiet. You have this conversation to bring them back into the room.
       </Lead>
+      <ActivityGuide
+        steps={[
+          "Read what Jordan says at each scene.",
+          "Pick one reply. Use Tab to reach the choices and Arrow keys to move between them.",
+          "See how Jordan reacts, what style your reply signaled, and how a stronger flex would sound.",
+          "Finish all 3 scenes. Replay any time to try a different mix.",
+        ]}
+        example={`If Jordan says "I'm fine, just tired," a warm acknowledgment ("Thanks for saying so — anything from my side making it heavier?") lands better than jumping to solutions.`}
+      />
 
       {!inProgress && (
         <CompletionBanner
@@ -1814,13 +1947,21 @@ function ScenarioScreen({
           >
             Jordan: "{step.jordan}"
           </div>
-          <div className="space-y-2">
+          <div
+            className="space-y-2"
+            role="radiogroup"
+            aria-label={`Scene ${stepIdx + 1} choices`}
+          >
             {step.choices.map((c, i) => (
               <button
                 key={i}
                 onClick={() =>
                   update({ scenarioChoices: [...state.scenarioChoices, i] })
                 }
+                onKeyDown={handleRadioGroupKey}
+                role="radio"
+                aria-checked={false}
+                tabIndex={i === 0 ? 0 : -1}
                 className="block w-full rounded-lg border px-3 py-2 text-left text-sm transition hover:border-[var(--deep)]"
                 style={{
                   borderColor: "var(--warm-gray)",
