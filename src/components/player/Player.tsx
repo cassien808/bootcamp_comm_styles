@@ -502,6 +502,7 @@ function Footer({
       <button
         onClick={onNext}
         disabled={!canAdvance && !last}
+        data-footer-continue
         className="rounded-md px-5 py-2 text-sm font-semibold transition disabled:opacity-40"
         style={{
           backgroundColor: "var(--deep)",
