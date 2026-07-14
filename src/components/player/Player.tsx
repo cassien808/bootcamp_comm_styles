@@ -85,6 +85,7 @@ export function Player() {
       className="min-h-screen"
       style={{ backgroundColor: "var(--off-white)" }}
     >
+      <SkipToActiveControl />
       {showResume && cur > 0 && (
         <ResumeBanner
           screen={SCREEN_TITLES[screenKey]}
@@ -104,7 +105,11 @@ export function Player() {
           onJump={(i) => goTo(i)}
         />
 
-        <div ref={stageRef} className="flex-1 px-5 py-8 sm:px-8 sm:py-10">
+        <div
+          ref={stageRef}
+          id="player-stage"
+          className="flex-1 px-5 py-8 sm:px-8 sm:py-10"
+        >
           <ScreenView
             screen={screenKey}
             state={state}
