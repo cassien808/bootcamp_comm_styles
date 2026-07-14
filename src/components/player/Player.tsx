@@ -1650,6 +1650,15 @@ function RewriterScreen({
         it sounds like that style, then tap <b>Get feedback</b>. Land 3 of 5
         tells for each style to finish.
       </Lead>
+      <ActivityGuide
+        steps={[
+          "Pick a style tab (Dominant, Influencer, Steady, or Conscientious).",
+          "Rewrite the bland message so it sounds like that style. Aim for the 5 tells shown.",
+          "Tap Get feedback — AI scores how many tells you landed and suggests a rewrite.",
+          "Land at least 3 of 5 for each style to finish.",
+        ]}
+        example='For Dominant, try: "Deadline moved up. Need your piece by Wed EOD. Two options if that\'s tight — reply which one works." Short, direct, deadline first.'
+      />
       {doneCount > 0 && (
         <CompletionBanner
           done={allDone}
