@@ -795,6 +795,20 @@ function handleRadioGroupKey(e: React.KeyboardEvent<HTMLButtonElement>) {
   target.click();
 }
 
+// Focus the first matching element on the next paint so React has committed the DOM.
+function focusNext(selector: string) {
+  requestAnimationFrame(() => {
+    const el = document.querySelector<HTMLElement>(selector);
+    el?.focus();
+  });
+}
+
+// Safely encode a value for use in an attribute selector.
+function attrEscape(v: string) {
+  // CSS.escape is on all modern browsers we target.
+  return typeof CSS !== "undefined" && CSS.escape ? CSS.escape(v) : v;
+}
+
 function WelcomeScreen({ onStart }: { onStart: () => void }) {
   return (
     <div className="grid gap-8 lg:grid-cols-[1.15fr_1fr] lg:items-center lg:gap-12">
