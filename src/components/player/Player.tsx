@@ -1276,7 +1276,21 @@ function SortScreen({
   const total = ALL_TRAITS.length;
 
   const setTrait = (trait: string, k: StyleKey) => {
-    update({ sortAnswers: { ...state.sortAnswers, [trait]: k } });
+    const nextAnswers = { ...state.sortAnswers, [trait]: k };
+    update({ sortAnswers: nextAnswers });
+    // Move focus to the next unanswered trait; when all are answered, jump to Check answers.
+    if (Object.keys(nextAnswers).length >= ALL_TRAITS.length) {
+      focusNext('[data-focus="sort-check"]');
+    } else {
+      const nextUnanswered = ALL_TRAITS.find(
+        (t) => nextAnswers[t.trait] === undefined,
+      );
+      if (nextUnanswered) {
+        focusNext(
+          `[data-focus-group="sort-${attrEscape(nextUnanswered.trait)}"] [role="radio"]`,
+        );
+      }
+    }
   };
   const correct = ALL_TRAITS.filter(
     (t) => state.sortAnswers[t.trait] === t.style,
@@ -1312,6 +1326,7 @@ function SortScreen({
                     : "var(--rucksack)"
                   : "var(--warm-gray)",
               }}
+              data-focus-group={`sort-${trait}`}
             >
               <span className="text-sm font-semibold" style={{ color: "var(--foundation)" }}>
                 {trait}
@@ -1357,6 +1372,7 @@ function SortScreen({
         <button
           disabled={answered < total}
           onClick={() => setChecked(true)}
+          data-focus="sort-check"
           className="rounded-md border px-4 py-2 text-sm font-semibold disabled:opacity-40"
           style={{
             borderColor: "var(--foundation)",
