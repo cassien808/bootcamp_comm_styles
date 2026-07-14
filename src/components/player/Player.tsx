@@ -1858,6 +1858,8 @@ function RewriterScreen({
         {entry && (
           <div
             className="mt-4 rounded-md p-3 text-sm"
+            data-focus="rewriter-score"
+            tabIndex={-1}
             style={{
               backgroundColor:
                 entry.score >= 3 ? "var(--sonic-soft)" : "var(--rucksack-soft)",
