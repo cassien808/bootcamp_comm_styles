@@ -815,6 +815,49 @@ function attrEscape(v: string) {
   return typeof CSS !== "undefined" && CSS.escape ? CSS.escape(v) : v;
 }
 
+// Visually hidden skip link that jumps keyboard users past headers/banners
+// to the first actionable control on the current screen.
+function SkipToActiveControl() {
+  const onSkip = (e: React.SyntheticEvent) => {
+    e.preventDefault();
+    requestAnimationFrame(() => {
+      const stage = document.getElementById("player-stage");
+      if (!stage) return;
+      const focusables = Array.from(
+        stage.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [role="radio"], [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+      let target: HTMLElement | undefined = focusables.find(
+        (el) => !el.closest("[data-activity-guide]"),
+      );
+      if (!target) {
+        const footerBtn = document.querySelector<HTMLElement>(
+          '[data-footer-continue]',
+        );
+        if (footerBtn) target = footerBtn;
+      }
+      target?.focus();
+    });
+  };
+  return (
+    <a
+      href="#player-stage"
+      onClick={onSkip}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") onSkip(e);
+      }}
+      className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:px-3 focus:py-2 focus:text-sm focus:font-semibold focus:shadow-lg focus:outline-none"
+      style={{
+        backgroundColor: "var(--foundation)",
+        color: "#fff",
+      }}
+    >
+      Skip to active control
+    </a>
+  );
+}
+
 function WelcomeScreen({ onStart }: { onStart: () => void }) {
   return (
     <div className="grid gap-8 lg:grid-cols-[1.15fr_1fr] lg:items-center lg:gap-12">
