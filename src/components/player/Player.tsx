@@ -1671,6 +1671,19 @@ function RewriterScreen({
           },
         },
       });
+      // If this rewrite landed and there's another style to try, jump the learner
+      // to that tab so they can keep moving. Otherwise leave focus on the score card.
+      if (res.score >= 3) {
+        const nextIncomplete = STYLE_ORDER.find(
+          (k) => k !== active && (state.rewriter[k]?.score ?? 0) < 3,
+        );
+        if (nextIncomplete) {
+          setActive(nextIncomplete);
+          focusNext(`[data-focus="rewriter-tab-${nextIncomplete}"]`);
+        } else {
+          focusNext('[data-focus="rewriter-score"]');
+        }
+      }
     } finally {
       setLoading(false);
     }
@@ -1745,6 +1758,7 @@ function RewriterScreen({
             <button
               key={k}
               onClick={() => setActive(k)}
+              data-focus={`rewriter-tab-${k}`}
               aria-label={
                 done
                   ? `${STYLES[k].name} — completed`
