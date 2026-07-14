@@ -1236,6 +1236,84 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
   );
 }
 
+function NavigateScreen({ onContinue }: { onContinue: () => void }) {
+  return (
+    <div className="max-w-2xl">
+      <H1>How to move through this course</H1>
+      <Lead>
+        A few quick tips so you can focus on learning instead of figuring out
+        the controls.
+      </Lead>
+
+      <Card className="mb-6">
+        <ul className="space-y-4">
+          {[
+            {
+              title: "Move forward and back",
+              body: "Use the Continue and Back buttons at the bottom of the screen. You can also press Enter to advance when a step is complete.",
+            },
+            {
+              title: "Jump to any step",
+              body: "Use the Jump to step menu in the top bar, or use the row of progress tabs. Arrow keys move between tabs; Enter selects one.",
+            },
+            {
+              title: "Skip past repeated content",
+              body: "Press Tab once after the page loads to reveal a Skip to active control link. It jumps you straight to the main action on the current screen.",
+            },
+            {
+              title: "Track your progress",
+              body: "The progress bar at the top shows which step you're on and how much of the module is left. Screen readers hear it as Step X of Y.",
+            },
+            {
+              title: "Your work is saved",
+              body: "If you leave and come back, you'll see a banner that lets you resume where you left off. Your answers stay in this browser only.",
+            },
+            {
+              title: "Open the cheat sheet",
+              body: "Starting on step 4, you can open a quick styles reference from the top bar if you want a reminder while you practice.",
+            },
+          ].map((item) => (
+            <li key={item.title} className="flex items-start gap-3">
+              <span
+                aria-hidden="true"
+                className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-bold"
+                style={{
+                  backgroundColor: "var(--sky)",
+                  color: "var(--foundation)",
+                }}
+              >
+                ✓
+              </span>
+              <div>
+                <div
+                  className="text-sm font-semibold"
+                  style={{ color: "var(--foundation)" }}
+                >
+                  {item.title}
+                </div>
+                <div
+                  className="text-sm leading-snug"
+                  style={{ color: "var(--foreground)" }}
+                >
+                  {item.body}
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </Card>
+
+      <button
+        onClick={onContinue}
+        className="rounded-md px-6 py-3 text-base font-semibold shadow-brand"
+        style={{ backgroundColor: "var(--deep)", color: "#fff" }}
+      >
+        Got it — let's begin
+      </button>
+    </div>
+  );
+}
+
 function ActivateScreen({
   state,
   update,
