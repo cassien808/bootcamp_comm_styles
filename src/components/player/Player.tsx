@@ -85,6 +85,7 @@ export function Player() {
       className="min-h-screen"
       style={{ backgroundColor: "var(--off-white)" }}
     >
+      <SkipToActiveControl />
       {showResume && cur > 0 && (
         <ResumeBanner
           screen={SCREEN_TITLES[screenKey]}
@@ -104,7 +105,11 @@ export function Player() {
           onJump={(i) => goTo(i)}
         />
 
-        <div ref={stageRef} className="flex-1 px-5 py-8 sm:px-8 sm:py-10">
+        <div
+          ref={stageRef}
+          id="player-stage"
+          className="flex-1 px-5 py-8 sm:px-8 sm:py-10"
+        >
           <ScreenView
             screen={screenKey}
             state={state}
@@ -497,6 +502,7 @@ function Footer({
       <button
         onClick={onNext}
         disabled={!canAdvance && !last}
+        data-footer-continue
         className="rounded-md px-5 py-2 text-sm font-semibold transition disabled:opacity-40"
         style={{
           backgroundColor: "var(--deep)",
@@ -730,6 +736,7 @@ function ActivityGuide({
 }) {
   return (
     <div
+      data-activity-guide
       className="mb-4 rounded-lg border-l-4 p-3 text-sm"
       style={{
         borderLeftColor: "var(--deep)",
@@ -807,6 +814,49 @@ function focusNext(selector: string) {
 function attrEscape(v: string) {
   // CSS.escape is on all modern browsers we target.
   return typeof CSS !== "undefined" && CSS.escape ? CSS.escape(v) : v;
+}
+
+// Visually hidden skip link that jumps keyboard users past headers/banners
+// to the first actionable control on the current screen.
+function SkipToActiveControl() {
+  const onSkip = (e: React.SyntheticEvent) => {
+    e.preventDefault();
+    requestAnimationFrame(() => {
+      const stage = document.getElementById("player-stage");
+      if (!stage) return;
+      const focusables = Array.from(
+        stage.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [role="radio"], [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+      let target: HTMLElement | undefined = focusables.find(
+        (el) => !el.closest("[data-activity-guide]"),
+      );
+      if (!target) {
+        const footerBtn = document.querySelector<HTMLElement>(
+          '[data-footer-continue]',
+        );
+        if (footerBtn) target = footerBtn;
+      }
+      target?.focus();
+    });
+  };
+  return (
+    <a
+      href="#player-stage"
+      onClick={onSkip}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") onSkip(e);
+      }}
+      className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:px-3 focus:py-2 focus:text-sm focus:font-semibold focus:shadow-lg focus:outline-none"
+      style={{
+        backgroundColor: "var(--foundation)",
+        color: "#fff",
+      }}
+    >
+      Skip to active control
+    </a>
+  );
 }
 
 function WelcomeScreen({ onStart }: { onStart: () => void }) {
