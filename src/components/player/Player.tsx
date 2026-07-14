@@ -1275,6 +1275,14 @@ function SortScreen({
         A quick warm-up. For each trait below, tap the style it fits best
         (D = Dominant, I = Influencer, S = Steady, C = Conscientious).
       </Lead>
+      <ActivityGuide
+        steps={[
+          "Read each trait word on the left.",
+          "Pick the letter that best fits: D, I, S, or C.",
+          "Answer all 16, then tap Check answers.",
+        ]}
+        example='"Blunt" → D (Dominant). Dominant readers speak short and direct — bluntness is their signature.'
+      />
       <div className="grid gap-2 sm:grid-cols-2">
         {ALL_TRAITS.map(({ trait, style }) => {
           const picked = state.sortAnswers[trait];
@@ -1294,13 +1302,21 @@ function SortScreen({
               <span className="text-sm font-semibold" style={{ color: "var(--foundation)" }}>
                 {trait}
               </span>
-              <div className="flex flex-wrap gap-1.5">
+              <div
+                className="flex flex-wrap gap-1.5"
+                role="radiogroup"
+                aria-label={`Pick a style for ${trait}`}
+              >
                 {STYLE_ORDER.map((k) => {
                   const active = picked === k;
                   return (
                     <button
                       key={k}
                       onClick={() => setTrait(trait, k)}
+                      onKeyDown={handleRadioGroupKey}
+                      role="radio"
+                      aria-checked={active}
+                      tabIndex={active || (!picked && k === STYLE_ORDER[0]) ? 0 : -1}
                       aria-label={`Mark ${trait} as ${STYLES[k].name}`}
                       className="rounded-md border px-2.5 py-1 text-xs font-semibold"
                       style={{
