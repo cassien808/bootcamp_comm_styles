@@ -624,6 +624,8 @@ function ScreenView({
   switch (screen) {
     case "welcome":
       return <WelcomeScreen onStart={() => goTo(1)} />;
+    case "navigate":
+      return <NavigateScreen onContinue={() => goTo(2)} />;
     case "activate":
       return <ActivateScreen state={state} update={update} />;
     case "why":
