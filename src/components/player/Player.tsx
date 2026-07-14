@@ -8,7 +8,18 @@ import {
   STYLE_ORDER,
   type StyleKey,
 } from "@/lib/disc";
-import { JORDAN_SCENARIO } from "@/lib/scenario";
+import {
+  JORDAN_SCENES,
+  SCENARIO_START_ID,
+  SCENARIO_TOTAL_SCENES,
+  TRUST_MAX,
+  TRUST_MIN,
+  TRUST_START,
+  TRUST_UNLOCK,
+  currentSceneId,
+  trustAfter,
+  type ScenarioTurn,
+} from "@/lib/scenario";
 import { buildReminderIcs, downloadIcs } from "@/lib/ics";
 import { coachMessage } from "@/lib/coaching.functions";
 import { StyleBadge } from "./StyleBadge";
