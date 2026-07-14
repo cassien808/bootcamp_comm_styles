@@ -237,6 +237,27 @@ function Topbar({
               Cheat sheet
             </button>
           )}
+          <label htmlFor="jump-to-step" className="sr-only">
+            Jump to step
+          </label>
+          <select
+            id="jump-to-step"
+            value={cur}
+            onChange={(e) => onJump(Number(e.target.value))}
+            className="rounded-md border px-2 py-1 text-xs font-semibold"
+            style={{
+              borderColor: "var(--foundation)",
+              color: "var(--foundation)",
+              backgroundColor: "transparent",
+            }}
+            aria-label={`Jump to step. Currently on step ${cur + 1} of ${total}: ${SCREEN_TITLES[SCREENS[cur]]}`}
+          >
+            {SCREENS.map((s, i) => (
+              <option key={s} value={i}>
+                {`Step ${i + 1} of ${total}: ${SCREEN_TITLES[s]}${i === cur ? " (current)" : i < cur ? " (completed)" : ""}`}
+              </option>
+            ))}
+          </select>
           <span
             className="text-xs tabular-nums"
             style={{ color: "var(--muted-foreground)" }}
@@ -250,8 +271,9 @@ function Topbar({
           </span>
         </div>
       </div>
+      {/* Separate progressbar semantics from the interactive step tablist:
+          ARIA disallows interactive descendants inside role="progressbar". */}
       <div
-        className="flex gap-[3px]"
         role="progressbar"
         aria-valuenow={cur + 1}
         aria-valuemin={1}
@@ -260,10 +282,21 @@ function Topbar({
         aria-valuetext={`Step ${cur + 1} of ${total}: ${SCREEN_TITLES[SCREENS[cur]]} — ${Math.round(
           (cur / Math.max(1, total - 1)) * 100,
         )} percent complete`}
+        className="sr-only"
+      />
+      <div
+        className="flex gap-[3px]"
+        role="tablist"
+        aria-orientation="horizontal"
+        aria-label="Jump to step"
       >
         {Array.from({ length: total }).map((_, i) => (
           <button
             key={i}
+            type="button"
+            role="tab"
+            aria-selected={i === cur}
+            tabIndex={i === cur ? 0 : -1}
             onClick={() => onJump(i)}
             onKeyDown={(e) => {
               if (e.key === "ArrowRight" || e.key === "ArrowDown") {
@@ -292,6 +325,9 @@ function Topbar({
                     | HTMLButtonElement
                     | undefined
                 )?.focus();
+              } else if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onJump(i);
               }
             }}
             title={`${SCREEN_TITLES[SCREENS[i]]}${i < cur ? " (completed)" : ""}`}
