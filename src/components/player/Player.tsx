@@ -719,6 +719,82 @@ function StylePickerImpl({ value, onChange, label }: { value: StyleKey | null; o
 
 // ----- Screens -----
 
+// Reusable "how this works" banner shown at the top of each activity so
+// learners always know what to do next and what a good answer looks like.
+function ActivityGuide({
+  steps,
+  example,
+}: {
+  steps: string[];
+  example: string;
+}) {
+  return (
+    <div
+      className="mb-4 rounded-lg border-l-4 p-3 text-sm"
+      style={{
+        borderLeftColor: "var(--deep)",
+        backgroundColor: "var(--sky)",
+        color: "var(--foundation)",
+      }}
+      role="note"
+      aria-label="How this activity works"
+    >
+      <div
+        className="mb-1 text-xs font-semibold uppercase tracking-wider"
+        style={{ color: "var(--deep)" }}
+      >
+        How this works
+      </div>
+      <ol className="ml-4 list-decimal space-y-0.5">
+        {steps.map((s, i) => (
+          <li key={i}>{s}</li>
+        ))}
+      </ol>
+      <div className="mt-2 text-xs" style={{ color: "var(--foreground)" }}>
+        <b>Example:</b> <span className="italic">{example}</span>
+      </div>
+    </div>
+  );
+}
+
+// Shared keyboard handler for a group of single-select buttons.
+// Wrap the buttons' parent in role="radiogroup" and give each button
+// role="radio" + aria-checked, then attach this to onKeyDown.
+// Supports Arrow keys, Home, and End. Enter/Space still activate via native button.
+function handleRadioGroupKey(e: React.KeyboardEvent<HTMLButtonElement>) {
+  const key = e.key;
+  if (
+    key !== "ArrowRight" &&
+    key !== "ArrowLeft" &&
+    key !== "ArrowUp" &&
+    key !== "ArrowDown" &&
+    key !== "Home" &&
+    key !== "End"
+  ) {
+    return;
+  }
+  e.preventDefault();
+  const group = (e.currentTarget as HTMLElement).closest(
+    '[role="radiogroup"]',
+  ) as HTMLElement | null;
+  if (!group) return;
+  const radios = Array.from(
+    group.querySelectorAll<HTMLButtonElement>('[role="radio"]'),
+  ).filter((r) => !r.disabled);
+  if (radios.length === 0) return;
+  const cur = radios.indexOf(e.currentTarget);
+  let next = cur;
+  if (key === "ArrowRight" || key === "ArrowDown")
+    next = (cur + 1) % radios.length;
+  else if (key === "ArrowLeft" || key === "ArrowUp")
+    next = (cur - 1 + radios.length) % radios.length;
+  else if (key === "Home") next = 0;
+  else if (key === "End") next = radios.length - 1;
+  const target = radios[next];
+  target.focus();
+  target.click();
+}
+
 function WelcomeScreen({ onStart }: { onStart: () => void }) {
   return (
     <div className="grid gap-8 lg:grid-cols-[1.15fr_1fr] lg:items-center lg:gap-12">
