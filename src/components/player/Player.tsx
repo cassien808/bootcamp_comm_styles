@@ -36,6 +36,7 @@ type Screen = (typeof SCREENS)[number];
 
 const SCREEN_TITLES: Record<Screen, string> = {
   welcome: "Welcome",
+  navigate: "How to move through this course",
   activate: "Your starting point",
   why: "Why it matters",
   concept: "The model",
