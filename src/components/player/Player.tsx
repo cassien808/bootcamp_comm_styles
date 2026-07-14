@@ -458,49 +458,93 @@ function StylePicker({
 
 function WelcomeScreen({ onStart }: { onStart: () => void }) {
   return (
-    <div className="max-w-2xl">
-      <div
-        className="mb-4 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wider"
-        style={{
-          borderColor: "var(--foundation)",
-          color: "var(--foundation)",
-        }}
-      >
-        Guided practice · 20 min
-      </div>
-      <H1>Communication styles for people leaders</H1>
-      <Lead>
-        Read the room. Flex your message. Send something that actually lands.
-        You'll practice on a real person and leave with a message ready to send.
-      </Lead>
-      <Card>
+    <div className="grid gap-8 lg:grid-cols-[1.15fr_1fr] lg:items-center lg:gap-12">
+      <div>
         <div
-          className="mb-2 text-sm font-semibold"
-          style={{ color: "var(--foundation)" }}
+          className="mb-4 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wider"
+          style={{
+            borderColor: "var(--foundation)",
+            color: "var(--foundation)",
+          }}
         >
-          What you'll do
+          Guided practice · 20 min
         </div>
-        <ul
-          className="space-y-1.5 text-sm"
-          style={{ color: "var(--foreground)" }}
-        >
-          <li>• Learn the four styles in plain language</li>
-          <li>• Practice reading them in real messages and conversations</li>
-          <li>• Rewrite one bland message four ways</li>
-          <li>• Coach a 1:1 with a direct report through a branching scenario</li>
-          <li>• Map your team and get a per-person cheat sheet</li>
-          <li>• Write and coach a real message you'll send this week</li>
-        </ul>
-      </Card>
-      <div className="mt-6">
+        <H1>Communication styles for people leaders</H1>
+        <Lead>
+          Read the room. Flex your message. Send something that actually lands.
+          You'll practice on a real person and leave with a message ready to
+          send.
+        </Lead>
+        <div className="mb-8 grid grid-cols-3 gap-3">
+          {[
+            { n: "4", l: "styles you'll learn to read" },
+            { n: "6", l: "hands-on practice reps" },
+            { n: "1", l: "real message ready to send" },
+          ].map((s) => (
+            <div
+              key={s.l}
+              className="rounded-xl border bg-white p-4"
+              style={{ borderColor: "var(--warm-gray)" }}
+            >
+              <div
+                className="font-serif text-3xl"
+                style={{ color: "var(--foundation)" }}
+              >
+                {s.n}
+              </div>
+              <div
+                className="mt-1 text-xs leading-snug"
+                style={{ color: "var(--muted-foreground)" }}
+              >
+                {s.l}
+              </div>
+            </div>
+          ))}
+        </div>
         <button
           onClick={onStart}
-          className="rounded-md px-6 py-3 text-base font-semibold"
+          className="rounded-md px-6 py-3 text-base font-semibold shadow-brand"
           style={{ backgroundColor: "var(--deep)", color: "#fff" }}
         >
           Let's begin
         </button>
       </div>
+      <Card className="lg:sticky lg:top-24">
+        <div
+          className="mb-3 text-xs font-semibold uppercase tracking-wider"
+          style={{ color: "var(--muted-foreground)" }}
+        >
+          What you'll do
+        </div>
+        <ul className="space-y-3">
+          {[
+            "Learn the four styles in plain language",
+            "Practice reading them in real messages and conversations",
+            "Rewrite one bland message four ways",
+            "Coach a 1:1 with a direct report through a branching scenario",
+            "Map your team and get a per-person cheat sheet",
+            "Write and coach a real message you'll send this week",
+          ].map((item, i) => (
+            <li key={item} className="flex items-start gap-3">
+              <span
+                className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-bold"
+                style={{
+                  backgroundColor: "var(--sky)",
+                  color: "var(--foundation)",
+                }}
+              >
+                {i + 1}
+              </span>
+              <span
+                className="text-sm leading-snug"
+                style={{ color: "var(--foreground)" }}
+              >
+                {item}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </Card>
     </div>
   );
 }
