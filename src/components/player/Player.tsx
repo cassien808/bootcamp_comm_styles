@@ -1867,7 +1867,7 @@ function ScenarioScreen({
           "See how Jordan reacts, what style your reply signaled, and how a stronger flex would sound.",
           "Finish all 3 scenes. Replay any time to try a different mix.",
         ]}
-        example='If Jordan says "I\'m fine, just tired," a warm acknowledgment ("Thanks for saying so — anything from my side making it heavier?") lands better than jumping to solutions.'
+        example={`If Jordan says "I'm fine, just tired," a warm acknowledgment ("Thanks for saying so — anything from my side making it heavier?") lands better than jumping to solutions.`}
       />
 
       {!inProgress && (
