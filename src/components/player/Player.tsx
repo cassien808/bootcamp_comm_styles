@@ -54,6 +54,7 @@ const SCREEN_TITLES: Record<Screen, string> = {
 export function Player() {
   const { state, update, reset, goTo, hydrated } = useModuleState();
   const [showResume, setShowResume] = useState(false);
+  const [cheatOpen, setCheatOpen] = useState(false);
 
   // Only prompt to resume once, on first hydration — not every time the learner advances.
   useEffect(() => {
@@ -96,7 +97,12 @@ export function Player() {
       )}
 
       <div className="mx-auto flex min-h-screen max-w-5xl flex-col">
-        <Topbar cur={cur} total={total} />
+        <Topbar
+          cur={cur}
+          total={total}
+          onOpenCheat={() => setCheatOpen(true)}
+          onJump={(i) => goTo(i)}
+        />
 
         <div ref={stageRef} className="flex-1 px-5 py-8 sm:px-8 sm:py-10">
           <ScreenView
@@ -123,6 +129,7 @@ export function Player() {
           />
         )}
       </div>
+      <CheatSheetDrawer open={cheatOpen} onClose={() => setCheatOpen(false)} />
     </div>
   );
 }
@@ -176,7 +183,17 @@ function ResumeBanner({
   );
 }
 
-function Topbar({ cur, total }: { cur: number; total: number }) {
+function Topbar({
+  cur,
+  total,
+  onOpenCheat,
+  onJump,
+}: {
+  cur: number;
+  total: number;
+  onOpenCheat: () => void;
+  onJump: (i: number) => void;
+}) {
   return (
     <div
       className="sticky top-0 z-10 border-b px-5 pt-4 pb-3 sm:px-8"
@@ -193,18 +210,37 @@ function Topbar({ cur, total }: { cur: number; total: number }) {
         >
           Communication Styles for People Leaders
         </span>
-        <span
-          className="text-xs tabular-nums"
-          style={{ color: "var(--muted-foreground)" }}
-        >
-          Step {cur + 1} of {total}
-        </span>
+        <div className="flex items-center gap-3">
+          {cur >= 3 && (
+            <button
+              onClick={onOpenCheat}
+              className="rounded-md border px-2.5 py-1 text-xs font-semibold"
+              style={{
+                borderColor: "var(--foundation)",
+                color: "var(--foundation)",
+                backgroundColor: "transparent",
+              }}
+              aria-label="Open styles cheat sheet"
+            >
+              Cheat sheet
+            </button>
+          )}
+          <span
+            className="text-xs tabular-nums"
+            style={{ color: "var(--muted-foreground)" }}
+          >
+            Step {cur + 1} of {total}
+          </span>
+        </div>
       </div>
-      <div className="flex gap-[3px]">
+      <div className="flex gap-[3px]" role="progressbar" aria-valuenow={cur + 1} aria-valuemin={1} aria-valuemax={total}>
         {Array.from({ length: total }).map((_, i) => (
-          <div
+          <button
             key={i}
-            className="h-1 flex-1 rounded-full"
+            onClick={() => onJump(i)}
+            title={`${SCREEN_TITLES[SCREENS[i]]}${i < cur ? " (completed)" : ""}`}
+            aria-label={`Go to step ${i + 1}: ${SCREEN_TITLES[SCREENS[i]]}`}
+            className="h-1 flex-1 rounded-full transition"
             style={{
               backgroundColor:
                 i < cur
@@ -215,6 +251,119 @@ function Topbar({ cur, total }: { cur: number; total: number }) {
             }}
           />
         ))}
+      </div>
+    </div>
+  );
+}
+
+function CheatSheetDrawer({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+  if (!open) return null;
+  return (
+    <div
+      className="fixed inset-0 z-50 flex"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Styles cheat sheet"
+    >
+      <button
+        onClick={onClose}
+        aria-label="Close cheat sheet"
+        className="flex-1 cursor-default"
+        style={{ backgroundColor: "rgba(9,51,84,0.35)" }}
+      />
+      <div
+        className="flex h-full w-full max-w-md flex-col overflow-y-auto border-l bg-white shadow-2xl sm:w-[420px]"
+        style={{ borderColor: "var(--warm-gray)" }}
+      >
+        <div
+          className="sticky top-0 flex items-center justify-between border-b px-5 py-3"
+          style={{
+            backgroundColor: "var(--off-white)",
+            borderColor: "var(--warm-gray)",
+          }}
+        >
+          <div
+            className="text-sm font-semibold uppercase tracking-wider"
+            style={{ color: "var(--foundation)" }}
+          >
+            Styles at a glance
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Close cheat sheet"
+            className="rounded-md border px-2.5 py-1 text-xs font-semibold"
+            style={{
+              borderColor: "var(--warm-gray)",
+              color: "var(--foundation)",
+            }}
+          >
+            Close
+          </button>
+        </div>
+        <div className="space-y-4 px-5 py-4">
+          {STYLE_ORDER.map((k) => {
+            const s = STYLES[k];
+            return (
+              <div
+                key={k}
+                className="rounded-xl border p-3"
+                style={{
+                  borderColor: s.colorVar,
+                  backgroundColor: s.softVar,
+                }}
+              >
+                <div className="mb-1 flex items-center justify-between">
+                  <div
+                    className="text-base font-bold"
+                    style={{ color: "var(--foundation)" }}
+                  >
+                    {s.name}
+                  </div>
+                  <span
+                    className="text-xs italic"
+                    style={{ color: "var(--muted-foreground)" }}
+                  >
+                    {s.tagline}
+                  </span>
+                </div>
+                <div
+                  className="mb-2 text-xs"
+                  style={{ color: "var(--foreground)" }}
+                >
+                  <b>Wants:</b> {s.wants}
+                </div>
+                <div
+                  className="mb-1 text-xs font-semibold uppercase tracking-wider"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
+                  How it sounds
+                </div>
+                <ul
+                  className="ml-4 list-disc text-xs"
+                  style={{ color: "var(--foreground)" }}
+                >
+                  {s.tells.map((t) => (
+                    <li key={t}>{t}</li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
