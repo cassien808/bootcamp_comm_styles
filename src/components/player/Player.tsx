@@ -576,6 +576,8 @@ function gate(
   s: ReturnType<typeof useModuleState>["state"],
 ): boolean {
   switch (screen) {
+    case "navigate":
+      return true;
     case "activate":
       return s.hookWho.trim().length > 0 && s.confidencePre !== null;
     case "self":
