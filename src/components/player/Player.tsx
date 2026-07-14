@@ -55,12 +55,11 @@ export function Player() {
   const { state, update, reset, goTo, hydrated } = useModuleState();
   const [showResume, setShowResume] = useState(false);
 
+  // Only prompt to resume once, on first hydration — not every time the learner advances.
   useEffect(() => {
     if (hydrated && state.cur > 0) setShowResume(true);
-  }, [hydrated, state.cur]);
-  // Only prompt to resume once, on first hydration — not every time the learner advances.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {}, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated]);
 
   const cur = state.cur;
   const total = SCREENS.length;
