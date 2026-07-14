@@ -233,14 +233,53 @@ function Topbar({
           </span>
         </div>
       </div>
-      <div className="flex gap-[3px]" role="progressbar" aria-valuenow={cur + 1} aria-valuemin={1} aria-valuemax={total}>
+      <div
+        className="flex gap-[3px]"
+        role="progressbar"
+        aria-valuenow={cur + 1}
+        aria-valuemin={1}
+        aria-valuemax={total}
+        aria-label={`Step ${cur + 1} of ${total}: ${SCREEN_TITLES[SCREENS[cur]]}`}
+      >
         {Array.from({ length: total }).map((_, i) => (
           <button
             key={i}
             onClick={() => onJump(i)}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+                e.preventDefault();
+                const next = e.currentTarget.parentElement?.children[
+                  Math.min(total - 1, i + 1)
+                ] as HTMLButtonElement | undefined;
+                next?.focus();
+              } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+                e.preventDefault();
+                const prev = e.currentTarget.parentElement?.children[
+                  Math.max(0, i - 1)
+                ] as HTMLButtonElement | undefined;
+                prev?.focus();
+              } else if (e.key === "Home") {
+                e.preventDefault();
+                (
+                  e.currentTarget.parentElement?.firstElementChild as
+                    | HTMLButtonElement
+                    | undefined
+                )?.focus();
+              } else if (e.key === "End") {
+                e.preventDefault();
+                (
+                  e.currentTarget.parentElement?.lastElementChild as
+                    | HTMLButtonElement
+                    | undefined
+                )?.focus();
+              }
+            }}
             title={`${SCREEN_TITLES[SCREENS[i]]}${i < cur ? " (completed)" : ""}`}
-            aria-label={`Go to step ${i + 1}: ${SCREEN_TITLES[SCREENS[i]]}`}
-            className="h-1 flex-1 rounded-full transition"
+            aria-label={`Go to step ${i + 1}: ${SCREEN_TITLES[SCREENS[i]]}${
+              i === cur ? " (current)" : i < cur ? " (completed)" : ""
+            }`}
+            aria-current={i === cur ? "step" : undefined}
+            className="h-1 flex-1 rounded-full"
             style={{
               backgroundColor:
                 i < cur
@@ -263,13 +302,47 @@ function CheatSheetDrawer({
   open: boolean;
   onClose: () => void;
 }) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+
   useEffect(() => {
     if (!open) return;
+    returnFocusRef.current = document.activeElement as HTMLElement | null;
+    // Move focus into the drawer.
+    closeBtnRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
+      if (e.key === "Tab") {
+        const root = panelRef.current;
+        if (!root) return;
+        const focusables = Array.from(
+          root.querySelectorAll<HTMLElement>(
+            'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+          ),
+        ).filter((el) => !el.hasAttribute("aria-hidden"));
+        if (focusables.length === 0) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        const active = document.activeElement as HTMLElement | null;
+        if (e.shiftKey && active === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && active === last) {
+          e.preventDefault();
+          first.focus();
+        } else if (active && !root.contains(active)) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      // Return focus to whatever opened the drawer.
+      returnFocusRef.current?.focus?.();
+    };
   }, [open, onClose]);
   if (!open) return null;
   return (
@@ -282,10 +355,12 @@ function CheatSheetDrawer({
       <button
         onClick={onClose}
         aria-label="Close cheat sheet"
+        tabIndex={-1}
         className="flex-1 cursor-default"
         style={{ backgroundColor: "rgba(9,51,84,0.35)" }}
       />
       <div
+        ref={panelRef}
         className="flex h-full w-full max-w-md flex-col overflow-y-auto border-l bg-white shadow-2xl sm:w-[420px]"
         style={{ borderColor: "var(--warm-gray)" }}
       >
@@ -303,6 +378,7 @@ function CheatSheetDrawer({
             Styles at a glance
           </div>
           <button
+            ref={closeBtnRef}
             onClick={onClose}
             aria-label="Close cheat sheet"
             className="rounded-md border px-2.5 py-1 text-xs font-semibold"
