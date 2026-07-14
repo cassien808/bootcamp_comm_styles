@@ -130,6 +130,13 @@ export function Player() {
         )}
       </div>
       <CheatSheetDrawer open={cheatOpen} onClose={() => setCheatOpen(false)} />
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {`Now on step ${cur + 1} of ${total}: ${SCREEN_TITLES[screenKey]}`}
+      </div>
     </div>
   );
 }
