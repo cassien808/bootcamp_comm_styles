@@ -105,19 +105,21 @@ export function Player() {
           />
         </div>
 
-        <Footer
-          cur={cur}
-          total={total}
-          canAdvance={canAdvance}
-          onBack={() => goTo(Math.max(0, cur - 1))}
-          onNext={() => {
-            if (cur === total - 1) {
-              reset();
-              return;
-            }
-            if (canAdvance) goTo(Math.min(total - 1, cur + 1));
-          }}
-        />
+        {cur > 0 && (
+          <Footer
+            cur={cur}
+            total={total}
+            canAdvance={canAdvance}
+            onBack={() => goTo(Math.max(0, cur - 1))}
+            onNext={() => {
+              if (cur === total - 1) {
+                reset();
+                return;
+              }
+              if (canAdvance) goTo(Math.min(total - 1, cur + 1));
+            }}
+          />
+        )}
       </div>
     </div>
   );
