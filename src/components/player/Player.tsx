@@ -16,6 +16,7 @@ import { StyleBadge } from "./StyleBadge";
 // ----- Screen registry -----
 const SCREENS = [
   "welcome",
+  "navigate",
   "activate",
   "why",
   "concept",
