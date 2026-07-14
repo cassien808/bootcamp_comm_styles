@@ -1,0 +1,2031 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { useModuleState } from "@/hooks/use-module-state";
+import {
+  BLAND_SOURCE_MESSAGE,
+  SAMPLE_EMAILS,
+  STYLES,
+  STYLE_ORDER,
+  type StyleKey,
+} from "@/lib/disc";
+import { JORDAN_SCENARIO } from "@/lib/scenario";
+import { buildReminderIcs, downloadIcs } from "@/lib/ics";
+import { coachMessage } from "@/lib/coaching.functions";
+import { StyleBadge } from "./StyleBadge";
+
+// ----- Screen registry -----
+const SCREENS = [
+  "welcome",
+  "activate",
+  "why",
+  "concept",
+  "self",
+  "sort",
+  "match",
+  "spot",
+  "rewriter",
+  "scenario",
+  "team",
+  "capstone",
+  "transfer",
+  "post",
+  "recap",
+] as const;
+type Screen = (typeof SCREENS)[number];
+
+const SCREEN_TITLES: Record<Screen, string> = {
+  welcome: "Welcome",
+  activate: "Your starting point",
+  why: "Why it matters",
+  concept: "The model",
+  self: "Your default",
+  sort: "Sort the traits",
+  match: "Blind spots",
+  spot: "Spot it in the wild",
+  rewriter: "Style-flex drill",
+  scenario: "1:1 with Jordan",
+  team: "Your team map",
+  capstone: "Write it for real",
+  transfer: "Your 7-day flex",
+  post: "Confidence check",
+  recap: "Take it with you",
+};
+
+export function Player() {
+  const { state, update, reset, goTo, hydrated } = useModuleState();
+  const [showResume, setShowResume] = useState(false);
+
+  useEffect(() => {
+    if (hydrated && state.cur > 0) setShowResume(true);
+  }, [hydrated, state.cur]);
+
+  const cur = state.cur;
+  const total = SCREENS.length;
+  const screenKey = SCREENS[cur];
+
+  const canAdvance = useMemo(() => gate(screenKey, state), [screenKey, state]);
+
+  const stageRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    stageRef.current?.scrollTo({ top: 0, behavior: "instant" });
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [cur]);
+
+  if (!hydrated) {
+    return (
+      <div className="min-h-screen" style={{ backgroundColor: "var(--off-white)" }} />
+    );
+  }
+
+  return (
+    <div
+      className="min-h-screen"
+      style={{ backgroundColor: "var(--off-white)" }}
+    >
+      {showResume && cur > 0 && (
+        <ResumeBanner
+          screen={SCREEN_TITLES[screenKey]}
+          onResume={() => setShowResume(false)}
+          onRestart={() => {
+            reset();
+            setShowResume(false);
+          }}
+        />
+      )}
+
+      <div className="mx-auto flex min-h-screen max-w-3xl flex-col">
+        <Topbar cur={cur} total={total} />
+
+        <div ref={stageRef} className="flex-1 px-5 py-8 sm:px-8 sm:py-10">
+          <ScreenView
+            screen={screenKey}
+            state={state}
+            update={update}
+            goTo={goTo}
+          />
+        </div>
+
+        <Footer
+          cur={cur}
+          total={total}
+          canAdvance={canAdvance}
+          onBack={() => goTo(Math.max(0, cur - 1))}
+          onNext={() => {
+            if (cur === total - 1) {
+              reset();
+              return;
+            }
+            if (canAdvance) goTo(Math.min(total - 1, cur + 1));
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ResumeBanner({
+  screen,
+  onResume,
+  onRestart,
+}: {
+  screen: string;
+  onResume: () => void;
+  onRestart: () => void;
+}) {
+  return (
+    <div
+      className="w-full border-b"
+      style={{
+        backgroundColor: "var(--sky)",
+        borderColor: "var(--warm-gray)",
+      }}
+    >
+      <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm">
+        <span style={{ color: "var(--foundation)" }}>
+          Welcome back. Resume at <b>{screen}</b>?
+        </span>
+        <div className="flex gap-2">
+          <button
+            onClick={onRestart}
+            className="rounded-md border px-3 py-1.5 text-sm font-semibold"
+            style={{
+              borderColor: "var(--foundation)",
+              color: "var(--foundation)",
+              backgroundColor: "transparent",
+            }}
+          >
+            Start fresh
+          </button>
+          <button
+            onClick={onResume}
+            className="rounded-md px-3 py-1.5 text-sm font-semibold"
+            style={{
+              backgroundColor: "var(--foundation)",
+              color: "#fff",
+            }}
+          >
+            Resume
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Topbar({ cur, total }: { cur: number; total: number }) {
+  return (
+    <div
+      className="sticky top-0 z-10 border-b px-5 pt-4 pb-3 sm:px-8"
+      style={{
+        backgroundColor: "rgba(248,246,240,0.92)",
+        backdropFilter: "blur(10px)",
+        borderColor: "var(--warm-gray)",
+      }}
+    >
+      <div className="mb-2 flex items-center justify-between">
+        <span
+          className="text-xs font-semibold uppercase tracking-widest"
+          style={{ color: "var(--foundation)" }}
+        >
+          Communication Styles for People Leaders
+        </span>
+        <span
+          className="text-xs tabular-nums"
+          style={{ color: "var(--muted-foreground)" }}
+        >
+          Step {cur + 1} of {total}
+        </span>
+      </div>
+      <div className="flex gap-[3px]">
+        {Array.from({ length: total }).map((_, i) => (
+          <div
+            key={i}
+            className="h-1 flex-1 rounded-full"
+            style={{
+              backgroundColor:
+                i < cur
+                  ? "var(--foundation)"
+                  : i === cur
+                    ? "var(--core)"
+                    : "var(--warm-gray)",
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Footer({
+  cur,
+  total,
+  canAdvance,
+  onBack,
+  onNext,
+}: {
+  cur: number;
+  total: number;
+  canAdvance: boolean;
+  onBack: () => void;
+  onNext: () => void;
+}) {
+  const last = cur === total - 1;
+  const label = last ? "Start over" : cur === total - 2 ? "Finish" : "Continue";
+  return (
+    <div
+      className="sticky bottom-0 z-10 flex items-center justify-between gap-3 border-t px-5 py-3 sm:px-8"
+      style={{
+        backgroundColor: "rgba(248,246,240,0.92)",
+        backdropFilter: "blur(10px)",
+        borderColor: "var(--warm-gray)",
+      }}
+    >
+      <button
+        onClick={onBack}
+        disabled={cur === 0}
+        className="rounded-md border px-4 py-2 text-sm font-semibold transition disabled:opacity-40"
+        style={{
+          borderColor: "var(--warm-gray)",
+          color: "var(--foundation)",
+          backgroundColor: "transparent",
+        }}
+      >
+        Back
+      </button>
+      <span
+        className="hidden text-xs sm:block"
+        style={{ color: "var(--muted-foreground)" }}
+      >
+        {!canAdvance && !last && "Complete this step to continue"}
+      </span>
+      <button
+        onClick={onNext}
+        disabled={!canAdvance && !last}
+        className="rounded-md px-5 py-2 text-sm font-semibold transition disabled:opacity-40"
+        style={{
+          backgroundColor: "var(--deep)",
+          color: "#fff",
+        }}
+      >
+        {label}
+      </button>
+    </div>
+  );
+}
+
+// ----- Gates: which screens require an interaction to advance -----
+function gate(
+  screen: Screen,
+  s: ReturnType<typeof useModuleState>["state"],
+): boolean {
+  switch (screen) {
+    case "activate":
+      return s.hookWho.trim().length > 0 && s.confidencePre !== null;
+    case "self":
+      return s.selfStyle !== null;
+    case "sort":
+      return Object.keys(s.sortAnswers).length >= 16;
+    case "match":
+      return STYLE_ORDER.every((k) => s.matchAnswers[k] !== null);
+    case "spot":
+      return STYLE_ORDER.every((k, i) => s.emailAnswers[i] !== undefined);
+    case "rewriter":
+      return STYLE_ORDER.every((k) => (s.rewriter[k]?.score ?? 0) >= 3);
+    case "scenario":
+      return s.scenarioChoices.length >= JORDAN_SCENARIO.length;
+    case "team":
+      return s.team.length >= 1; // encouraged: 3-5, minimum 1 to continue
+    case "capstone":
+      return (
+        s.targetStyle !== null &&
+        s.capstoneDraft.trim().length >= 20 &&
+        (s.capstoneCoach !== null || s.capstoneDraft.trim().length >= 20)
+      );
+    case "transfer":
+      return s.commitment.trim().length > 5;
+    case "post":
+      return s.confidencePost !== null;
+    default:
+      return true;
+  }
+}
+
+// ----- The dispatcher -----
+function ScreenView({
+  screen,
+  state,
+  update,
+  goTo,
+}: {
+  screen: Screen;
+  state: ReturnType<typeof useModuleState>["state"];
+  update: ReturnType<typeof useModuleState>["update"];
+  goTo: (n: number) => void;
+}) {
+  switch (screen) {
+    case "welcome":
+      return <WelcomeScreen onStart={() => goTo(1)} />;
+    case "activate":
+      return <ActivateScreen state={state} update={update} />;
+    case "why":
+      return <WhyScreen />;
+    case "concept":
+      return <ConceptScreen />;
+    case "self":
+      return <SelfScreen state={state} update={update} />;
+    case "sort":
+      return <SortScreen state={state} update={update} />;
+    case "match":
+      return <MatchScreen state={state} update={update} />;
+    case "spot":
+      return <SpotScreen state={state} update={update} />;
+    case "rewriter":
+      return <RewriterScreen state={state} update={update} />;
+    case "scenario":
+      return <ScenarioScreen state={state} update={update} />;
+    case "team":
+      return <TeamScreen state={state} update={update} />;
+    case "capstone":
+      return <CapstoneScreen state={state} update={update} />;
+    case "transfer":
+      return <TransferScreen state={state} update={update} />;
+    case "post":
+      return <PostScreen state={state} update={update} />;
+    case "recap":
+      return <RecapScreen state={state} />;
+  }
+}
+
+// ----- Reusable UI bits -----
+function H1({ children }: { children: React.ReactNode }) {
+  return (
+    <h1 className="mb-3 text-3xl leading-tight sm:text-4xl">{children}</h1>
+  );
+}
+function H2({ children }: { children: React.ReactNode }) {
+  return <h2 className="mb-3 text-2xl leading-tight sm:text-3xl">{children}</h2>;
+}
+function Lead({ children }: { children: React.ReactNode }) {
+  return (
+    <p
+      className="mb-6 text-base sm:text-lg"
+      style={{ color: "var(--muted-foreground)" }}
+    >
+      {children}
+    </p>
+  );
+}
+function Card({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`rounded-2xl border bg-white p-5 sm:p-6 ${className}`}
+      style={{
+        borderColor: "var(--warm-gray)",
+        boxShadow: "var(--shadow-brand)",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+function StylePicker({
+  value,
+  onChange,
+  label,
+}: {
+  value: StyleKey | null;
+  onChange: (k: StyleKey) => void;
+  label?: string;
+}) {
+  return (
+    <div>
+      {label && (
+        <div
+          className="mb-2 text-sm font-semibold"
+          style={{ color: "var(--foundation)" }}
+        >
+          {label}
+        </div>
+      )}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {STYLE_ORDER.map((k) => {
+          const s = STYLES[k];
+          const active = value === k;
+          return (
+            <button
+              key={k}
+              onClick={() => onChange(k)}
+              className="rounded-xl border p-3 text-left transition"
+              style={{
+                borderColor: active ? s.colorVar : "var(--warm-gray)",
+                backgroundColor: active ? s.softVar : "#fff",
+                boxShadow: active ? "var(--shadow-brand)" : "none",
+              }}
+            >
+              <div
+                className="mb-1 flex items-center gap-2 text-sm font-bold"
+                style={{ color: "var(--foundation)" }}
+              >
+                <span
+                  className="inline-block h-2.5 w-2.5 rounded-full"
+                  style={{ backgroundColor: s.colorVar }}
+                />
+                {s.name}
+              </div>
+              <div
+                className="text-xs"
+                style={{ color: "var(--muted-foreground)" }}
+              >
+                {s.tagline}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ----- Screens -----
+
+function WelcomeScreen({ onStart }: { onStart: () => void }) {
+  return (
+    <div className="max-w-2xl">
+      <div
+        className="mb-4 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wider"
+        style={{
+          borderColor: "var(--foundation)",
+          color: "var(--foundation)",
+        }}
+      >
+        Guided practice · 20 min
+      </div>
+      <H1>Communication styles for people leaders</H1>
+      <Lead>
+        Read the room. Flex your message. Send something that actually lands.
+        You'll practice on a real person and leave with a message ready to send.
+      </Lead>
+      <Card>
+        <div
+          className="mb-2 text-sm font-semibold"
+          style={{ color: "var(--foundation)" }}
+        >
+          What you'll do
+        </div>
+        <ul
+          className="space-y-1.5 text-sm"
+          style={{ color: "var(--foreground)" }}
+        >
+          <li>• Learn the four styles in plain language</li>
+          <li>• Practice reading them in real messages and conversations</li>
+          <li>• Rewrite one bland message four ways</li>
+          <li>• Coach a 1:1 with a direct report through a branching scenario</li>
+          <li>• Map your team and get a per-person cheat sheet</li>
+          <li>• Write and coach a real message you'll send this week</li>
+        </ul>
+      </Card>
+      <div className="mt-6">
+        <button
+          onClick={onStart}
+          className="rounded-md px-6 py-3 text-base font-semibold"
+          style={{ backgroundColor: "var(--deep)", color: "#fff" }}
+        >
+          Let's begin
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ActivateScreen({
+  state,
+  update,
+}: {
+  state: ReturnType<typeof useModuleState>["state"];
+  update: ReturnType<typeof useModuleState>["update"];
+}) {
+  return (
+    <div className="max-w-2xl">
+      <H2>Bring someone real into the room</H2>
+      <Lead>
+        Pick one person on your team you struggle to reach — a message that
+        didn't land, a conversation that felt off. You'll practice on them.
+      </Lead>
+
+      <Card className="mb-4">
+        <label
+          className="mb-1 block text-sm font-semibold"
+          style={{ color: "var(--foundation)" }}
+        >
+          Who is this person? (first name or initial is fine)
+        </label>
+        <input
+          value={state.hookWho}
+          onChange={(e) => update({ hookWho: e.target.value })}
+          placeholder="e.g., Marcus, or M."
+          className="w-full rounded-md border px-3 py-2 text-base"
+          style={{ borderColor: "var(--warm-gray)" }}
+        />
+        <label
+          className="mt-4 mb-1 block text-sm font-semibold"
+          style={{ color: "var(--foundation)" }}
+        >
+          What happened? (one or two sentences)
+        </label>
+        <textarea
+          value={state.hookWhat}
+          onChange={(e) => update({ hookWhat: e.target.value })}
+          rows={3}
+          placeholder="e.g., I sent a detailed plan and got a one-word reply. Felt like it never registered."
+          className="w-full rounded-md border px-3 py-2 text-base"
+          style={{ borderColor: "var(--warm-gray)" }}
+        />
+        <div
+          className="mt-3 rounded-md border p-3 text-xs"
+          style={{
+            borderColor: "var(--sky)",
+            backgroundColor: "var(--sky)",
+            color: "var(--foundation)",
+          }}
+        >
+          Nothing you type here leaves this screen. It's saved locally in your
+          browser only.
+        </div>
+      </Card>
+
+      <Card>
+        <label
+          className="mb-2 block text-sm font-semibold"
+          style={{ color: "var(--foundation)" }}
+        >
+          Right now, how confident are you flexing your style?
+        </label>
+        <ConfidenceSlider
+          value={state.confidencePre}
+          onChange={(v) => update({ confidencePre: v })}
+        />
+      </Card>
+    </div>
+  );
+}
+
+function ConfidenceSlider({
+  value,
+  onChange,
+}: {
+  value: number | null;
+  onChange: (n: number) => void;
+}) {
+  return (
+    <div>
+      <div className="flex gap-1.5">
+        {[1, 2, 3, 4, 5].map((n) => {
+          const active = value !== null && value >= n;
+          return (
+            <button
+              key={n}
+              onClick={() => onChange(n)}
+              className="h-11 flex-1 rounded-md border text-sm font-bold transition"
+              style={{
+                borderColor: active ? "var(--deep)" : "var(--warm-gray)",
+                backgroundColor: active ? "var(--deep)" : "#fff",
+                color: active ? "#fff" : "var(--muted-foreground)",
+              }}
+            >
+              {n}
+            </button>
+          );
+        })}
+      </div>
+      <div
+        className="mt-2 flex justify-between text-xs"
+        style={{ color: "var(--muted-foreground)" }}
+      >
+        <span>Not confident</span>
+        <span>Very confident</span>
+      </div>
+    </div>
+  );
+}
+
+function WhyScreen() {
+  return (
+    <div className="max-w-2xl">
+      <H2>When your message doesn't land, the cost is real</H2>
+      <Lead>
+        Most misfires aren't about what you said. They're about how the other
+        person needed to hear it.
+      </Lead>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <StatCard n="70%" label="of workplace mistakes trace back to poor communication" />
+        <StatCard n="5x" label="more likely to disengage when a manager's style mismatches theirs" />
+        <StatCard n="1 flex" label="per week is enough to change how a direct report experiences you" />
+        <StatCard n="20 min" label="is all this takes to build the flex muscle" />
+      </div>
+    </div>
+  );
+}
+function StatCard({ n, label }: { n: string; label: string }) {
+  return (
+    <div
+      className="rounded-xl border bg-white p-4"
+      style={{ borderColor: "var(--warm-gray)" }}
+    >
+      <div
+        className="text-3xl font-bold"
+        style={{ color: "var(--deep)", fontFamily: "var(--font-serif)" }}
+      >
+        {n}
+      </div>
+      <div
+        className="mt-1 text-sm"
+        style={{ color: "var(--foreground)" }}
+      >
+        {label}
+      </div>
+    </div>
+  );
+}
+
+function ConceptScreen() {
+  return (
+    <div className="max-w-2xl">
+      <H2>Two questions place every style</H2>
+      <Lead>
+        The DISC model boils down to how someone moves and what they focus on.
+        Every person you work with sits somewhere on this grid.
+      </Lead>
+      <div
+        className="rounded-2xl border bg-white p-5"
+        style={{
+          borderColor: "var(--warm-gray)",
+          boxShadow: "var(--shadow-brand)",
+        }}
+      >
+        <DiscGrid />
+      </div>
+      <div className="mt-6">
+        <H2>What each style wants from you</H2>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {STYLE_ORDER.map((k) => (
+            <div
+              key={k}
+              className="rounded-xl border p-4"
+              style={{
+                borderColor: STYLES[k].colorVar,
+                backgroundColor: STYLES[k].softVar,
+              }}
+            >
+              <div className="mb-1 flex items-center gap-2">
+                <StyleBadge style={k} />
+              </div>
+              <div
+                className="text-sm"
+                style={{ color: "var(--foreground)" }}
+              >
+                {STYLES[k].wants}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DiscGrid() {
+  const cell = (k: StyleKey, label: string, sub: string) => (
+    <div
+      className="flex flex-col justify-between rounded-lg p-3"
+      style={{
+        backgroundColor: STYLES[k].softVar,
+        border: `1px solid ${STYLES[k].colorVar}`,
+      }}
+    >
+      <div
+        className="text-sm font-bold"
+        style={{ color: "var(--foundation)" }}
+      >
+        {STYLES[k].name}
+      </div>
+      <div className="mt-1 text-xs" style={{ color: "var(--foreground)" }}>
+        {sub}
+      </div>
+      <div
+        className="mt-2 text-xs italic"
+        style={{ color: "var(--muted-foreground)" }}
+      >
+        {label}
+      </div>
+    </div>
+  );
+  return (
+    <div>
+      <div className="mb-2 flex items-center justify-between text-xs" style={{ color: "var(--muted-foreground)" }}>
+        <span>← Task-focused</span>
+        <span>People-focused →</span>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        {cell("d", "Fast · Task", "Direct, drives outcomes")}
+        {cell("i", "Fast · People", "Warm, rallies the room")}
+        {cell("c", "Slow · Task", "Precise, quality-first")}
+        {cell("s", "Slow · People", "Calm, protects harmony")}
+      </div>
+      <div className="mt-2 flex items-center justify-between text-xs" style={{ color: "var(--muted-foreground)" }}>
+        <span>↑ Fast-paced</span>
+        <span>↓ Steady-paced</span>
+      </div>
+    </div>
+  );
+}
+
+function SelfScreen({
+  state,
+  update,
+}: {
+  state: ReturnType<typeof useModuleState>["state"];
+  update: ReturnType<typeof useModuleState>["update"];
+}) {
+  const s = state.selfStyle ? STYLES[state.selfStyle] : null;
+  return (
+    <div className="max-w-2xl">
+      <H2>What's your default under pressure?</H2>
+      <Lead>
+        Not who you are on a good day — who you become when the deadline hits.
+        There's no wrong answer.
+      </Lead>
+      <StylePicker
+        value={state.selfStyle}
+        onChange={(k) => update({ selfStyle: k })}
+      />
+      {s && (
+        <Card className="mt-5">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <div
+                className="mb-1 text-xs font-semibold uppercase tracking-wider"
+                style={{ color: "var(--sonic)" }}
+              >
+                The gift your style gives your team
+              </div>
+              <div className="text-sm">{s.gift}</div>
+            </div>
+            <div>
+              <div
+                className="mb-1 text-xs font-semibold uppercase tracking-wider"
+                style={{ color: "var(--rucksack)" }}
+              >
+                The risk to watch
+              </div>
+              <div className="text-sm">{s.risk}</div>
+            </div>
+          </div>
+          <div className="mt-4 border-t pt-4" style={{ borderColor: "var(--warm-gray)" }}>
+            <label
+              className="mb-1 block text-sm font-semibold"
+              style={{ color: "var(--foundation)" }}
+            >
+              Take a second — {s.reflection}
+            </label>
+            <textarea
+              value={state.selfReflection}
+              onChange={(e) => update({ selfReflection: e.target.value })}
+              rows={2}
+              placeholder="Just for you — nothing leaves this screen."
+              className="w-full rounded-md border px-3 py-2 text-sm"
+              style={{ borderColor: "var(--warm-gray)" }}
+            />
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// Traits pool for sort activity
+const ALL_TRAITS: Array<{ trait: string; style: StyleKey }> = STYLE_ORDER.flatMap(
+  (k) => STYLES[k].traits.map((t) => ({ trait: t, style: k })),
+);
+
+function SortScreen({
+  state,
+  update,
+}: {
+  state: ReturnType<typeof useModuleState>["state"];
+  update: ReturnType<typeof useModuleState>["update"];
+}) {
+  const [checked, setChecked] = useState(false);
+  const answered = Object.keys(state.sortAnswers).length;
+  const total = ALL_TRAITS.length;
+
+  const setTrait = (trait: string, k: StyleKey) => {
+    update({ sortAnswers: { ...state.sortAnswers, [trait]: k } });
+  };
+  const correct = ALL_TRAITS.filter(
+    (t) => state.sortAnswers[t.trait] === t.style,
+  ).length;
+
+  return (
+    <div className="max-w-2xl">
+      <H2>Sort each trait to its style</H2>
+      <Lead>
+        Quick pattern-recognition warm-up. Tap a style for each trait.
+      </Lead>
+      <div className="space-y-2">
+        {ALL_TRAITS.map(({ trait, style }) => {
+          const picked = state.sortAnswers[trait];
+          const isRight = picked === style;
+          return (
+            <div
+              key={trait}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-white p-3"
+              style={{
+                borderColor: checked
+                  ? isRight
+                    ? "var(--sonic)"
+                    : "var(--rucksack)"
+                  : "var(--warm-gray)",
+              }}
+            >
+              <span className="text-sm font-semibold" style={{ color: "var(--foundation)" }}>
+                {trait}
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {STYLE_ORDER.map((k) => {
+                  const active = picked === k;
+                  return (
+                    <button
+                      key={k}
+                      onClick={() => setTrait(trait, k)}
+                      className="rounded-md border px-2.5 py-1 text-xs font-semibold"
+                      style={{
+                        borderColor: active
+                          ? STYLES[k].colorVar
+                          : "var(--warm-gray)",
+                        backgroundColor: active ? STYLES[k].softVar : "#fff",
+                        color: "var(--foundation)",
+                      }}
+                    >
+                      {STYLES[k].name[0]}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+        <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>
+          {answered}/{total} sorted
+        </span>
+        <button
+          disabled={answered < total}
+          onClick={() => setChecked(true)}
+          className="rounded-md border px-4 py-2 text-sm font-semibold disabled:opacity-40"
+          style={{
+            borderColor: "var(--foundation)",
+            color: "var(--foundation)",
+          }}
+        >
+          Check answers
+        </button>
+      </div>
+      {checked && (
+        <div
+          className="mt-3 rounded-md p-3 text-sm"
+          style={{
+            backgroundColor: "var(--sky)",
+            color: "var(--foundation)",
+          }}
+        >
+          {correct} of {total} correct.{" "}
+          {correct === total
+            ? "Clean sweep. Move on."
+            : "Look for the reds — swap them, then continue."}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MatchScreen({
+  state,
+  update,
+}: {
+  state: ReturnType<typeof useModuleState>["state"];
+  update: ReturnType<typeof useModuleState>["update"];
+}) {
+  const [checked, setChecked] = useState(false);
+  const set = (k: StyleKey, blindStyle: StyleKey) => {
+    update({ matchAnswers: { ...state.matchAnswers, [k]: blindStyle } });
+  };
+  const allAnswered = STYLE_ORDER.every((k) => state.matchAnswers[k] !== null);
+  return (
+    <div className="max-w-2xl">
+      <H2>Match each style to its blind spot</H2>
+      <Lead>
+        Every strength has a shadow. For each style, pick the blind spot that
+        fits.
+      </Lead>
+      <div className="space-y-3">
+        {STYLE_ORDER.map((k) => (
+          <div
+            key={k}
+            className="rounded-xl border bg-white p-4"
+            style={{ borderColor: "var(--warm-gray)" }}
+          >
+            <div className="mb-2 flex items-center gap-2">
+              <StyleBadge style={k} />
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {STYLE_ORDER.map((bk) => {
+                const active = state.matchAnswers[k] === bk;
+                const right = checked && bk === k;
+                const wrong = checked && active && bk !== k;
+                return (
+                  <button
+                    key={bk}
+                    onClick={() => set(k, bk)}
+                    className="rounded-md border px-3 py-2 text-left text-sm"
+                    style={{
+                      borderColor: right
+                        ? "var(--sonic)"
+                        : wrong
+                          ? "var(--rucksack)"
+                          : active
+                            ? "var(--deep)"
+                            : "var(--warm-gray)",
+                      backgroundColor: active ? "var(--sky)" : "#fff",
+                      color: "var(--foundation)",
+                    }}
+                  >
+                    {STYLES[bk].blindSpot}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-5 flex justify-end">
+        <button
+          disabled={!allAnswered}
+          onClick={() => setChecked(true)}
+          className="rounded-md border px-4 py-2 text-sm font-semibold disabled:opacity-40"
+          style={{
+            borderColor: "var(--foundation)",
+            color: "var(--foundation)",
+          }}
+        >
+          Check answers
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SpotScreen({
+  state,
+  update,
+}: {
+  state: ReturnType<typeof useModuleState>["state"];
+  update: ReturnType<typeof useModuleState>["update"];
+}) {
+  const [idx, setIdx] = useState(0);
+  const email = SAMPLE_EMAILS[idx];
+  const picked = state.emailAnswers[idx];
+
+  return (
+    <div className="max-w-2xl">
+      <H2>Read the email. Name the style.</H2>
+      <Lead>
+        {idx + 1} of {SAMPLE_EMAILS.length} — trust your gut, then check the
+        tell.
+      </Lead>
+      <Card>
+        <div
+          className="mb-1 text-xs font-semibold uppercase tracking-wider"
+          style={{ color: "var(--muted-foreground)" }}
+        >
+          From
+        </div>
+        <div className="text-sm font-semibold" style={{ color: "var(--foundation)" }}>
+          {email.from}
+        </div>
+        <div
+          className="mt-2 text-xs font-semibold uppercase tracking-wider"
+          style={{ color: "var(--muted-foreground)" }}
+        >
+          Subject
+        </div>
+        <div className="text-sm font-semibold" style={{ color: "var(--foundation)" }}>
+          {email.subject}
+        </div>
+        <div
+          className="mt-3 rounded-md p-3 text-sm"
+          style={{ backgroundColor: "var(--off-white)" }}
+        >
+          {email.body}
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {STYLE_ORDER.map((k) => {
+            const active = picked === k;
+            const isRight = picked !== undefined && k === email.answer;
+            const isWrong = active && k !== email.answer;
+            return (
+              <button
+                key={k}
+                onClick={() =>
+                  update({
+                    emailAnswers: { ...state.emailAnswers, [idx]: k },
+                  })
+                }
+                disabled={picked !== undefined}
+                className="rounded-md border px-3 py-2 text-sm font-semibold"
+                style={{
+                  borderColor: isRight
+                    ? "var(--sonic)"
+                    : isWrong
+                      ? "var(--rucksack)"
+                      : active
+                        ? "var(--deep)"
+                        : "var(--warm-gray)",
+                  backgroundColor: isRight
+                    ? "var(--sonic-soft)"
+                    : isWrong
+                      ? "var(--rucksack-soft)"
+                      : "#fff",
+                  color: "var(--foundation)",
+                }}
+              >
+                {STYLES[k].name}
+              </button>
+            );
+          })}
+        </div>
+        {picked !== undefined && (
+          <div
+            className="mt-3 rounded-md p-3 text-sm"
+            style={{
+              backgroundColor: "var(--sky)",
+              color: "var(--foundation)",
+            }}
+          >
+            <b>Tell:</b> {email.tell}
+          </div>
+        )}
+      </Card>
+      <div className="mt-4 flex justify-between">
+        <button
+          disabled={idx === 0}
+          onClick={() => setIdx((i) => Math.max(0, i - 1))}
+          className="rounded-md border px-3 py-1.5 text-sm disabled:opacity-40"
+          style={{ borderColor: "var(--warm-gray)", color: "var(--foundation)" }}
+        >
+          Previous
+        </button>
+        <button
+          disabled={picked === undefined || idx === SAMPLE_EMAILS.length - 1}
+          onClick={() => setIdx((i) => Math.min(SAMPLE_EMAILS.length - 1, i + 1))}
+          className="rounded-md border px-3 py-1.5 text-sm font-semibold disabled:opacity-40"
+          style={{ borderColor: "var(--foundation)", color: "var(--foundation)" }}
+        >
+          Next email
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function RewriterScreen({
+  state,
+  update,
+}: {
+  state: ReturnType<typeof useModuleState>["state"];
+  update: ReturnType<typeof useModuleState>["update"];
+}) {
+  const [active, setActive] = useState<StyleKey>("d");
+  const [draft, setDraft] = useState(state.rewriter[active]?.draft ?? "");
+  const [loading, setLoading] = useState(false);
+  const coach = useServerFn(coachMessage);
+
+  useEffect(() => {
+    setDraft(state.rewriter[active]?.draft ?? "");
+  }, [active, state.rewriter]);
+
+  const runCoach = async () => {
+    if (draft.trim().length < 10) return;
+    setLoading(true);
+    try {
+      const res = await coach({
+        data: {
+          targetStyle: active,
+          message: draft,
+          mode: "rewriter",
+        },
+      });
+      update({
+        rewriter: {
+          ...state.rewriter,
+          [active]: {
+            score: res.score,
+            hits: res.hits,
+            misses: res.misses,
+            feedback: res.feedback,
+            suggestion: res.suggestion,
+            draft,
+          },
+        },
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const entry = state.rewriter[active];
+  return (
+    <div className="max-w-2xl">
+      <H2>Rewrite one message four ways</H2>
+      <Lead>
+        Same ask, four readers. Rewrite the bland source below in each style.
+        Hit at least 3 of 5 tells per style to move on.
+      </Lead>
+      <Card className="mb-4">
+        <div
+          className="mb-1 text-xs font-semibold uppercase tracking-wider"
+          style={{ color: "var(--muted-foreground)" }}
+        >
+          Bland source message
+        </div>
+        <div className="text-sm italic" style={{ color: "var(--foundation)" }}>
+          "{BLAND_SOURCE_MESSAGE}"
+        </div>
+      </Card>
+
+      <div className="mb-3 flex flex-wrap gap-2">
+        {STYLE_ORDER.map((k) => {
+          const done = (state.rewriter[k]?.score ?? 0) >= 3;
+          const isActive = k === active;
+          return (
+            <button
+              key={k}
+              onClick={() => setActive(k)}
+              className="flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-semibold"
+              style={{
+                borderColor: isActive ? STYLES[k].colorVar : "var(--warm-gray)",
+                backgroundColor: isActive ? STYLES[k].softVar : "#fff",
+                color: "var(--foundation)",
+              }}
+            >
+              {STYLES[k].name} {done && "✓"}
+            </button>
+          );
+        })}
+      </div>
+
+      <Card>
+        <div
+          className="mb-1 text-sm font-semibold"
+          style={{ color: "var(--foundation)" }}
+        >
+          Rewrite for a {STYLES[active].name} reader
+        </div>
+        <div
+          className="mb-3 text-xs"
+          style={{ color: "var(--muted-foreground)" }}
+        >
+          {STYLES[active].tagline}
+        </div>
+        <textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          rows={5}
+          placeholder="Type your rewrite here..."
+          className="w-full rounded-md border px-3 py-2 text-sm"
+          style={{ borderColor: "var(--warm-gray)" }}
+        />
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+          <span
+            className="text-xs"
+            style={{ color: "var(--muted-foreground)" }}
+          >
+            Aim for the 5 tells: {STYLES[active].tells.join(" · ")}
+          </span>
+          <button
+            onClick={runCoach}
+            disabled={loading || draft.trim().length < 10}
+            className="rounded-md px-4 py-2 text-sm font-semibold disabled:opacity-40"
+            style={{ backgroundColor: "var(--deep)", color: "#fff" }}
+          >
+            {loading ? "Coaching…" : "Get feedback"}
+          </button>
+        </div>
+        {entry && (
+          <div
+            className="mt-4 rounded-md p-3 text-sm"
+            style={{
+              backgroundColor:
+                entry.score >= 3 ? "var(--sonic-soft)" : "var(--rucksack-soft)",
+              color: "var(--foundation)",
+            }}
+          >
+            <div className="mb-1 font-semibold">
+              {entry.score}/5 tells landed
+            </div>
+            <div className="mb-2">{entry.feedback}</div>
+            {entry.misses.length > 0 && (
+              <div className="mb-2">
+                <div className="text-xs font-semibold uppercase tracking-wider">
+                  Missed
+                </div>
+                <ul className="ml-4 list-disc">
+                  {entry.misses.map((m) => (
+                    <li key={m}>{m}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {entry.suggestion && (
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-wider">
+                  Suggested rewrite
+                </div>
+                <div className="mt-1 italic">"{entry.suggestion}"</div>
+              </div>
+            )}
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+function ScenarioScreen({
+  state,
+  update,
+}: {
+  state: ReturnType<typeof useModuleState>["state"];
+  update: ReturnType<typeof useModuleState>["update"];
+}) {
+  const stepIdx = Math.min(state.scenarioChoices.length, JORDAN_SCENARIO.length - 1);
+  const inProgress = state.scenarioChoices.length < JORDAN_SCENARIO.length;
+  const step = JORDAN_SCENARIO[stepIdx];
+  const lastChoice =
+    !inProgress || state.scenarioChoices.length > 0
+      ? state.scenarioChoices[state.scenarioChoices.length - 1]
+      : null;
+
+  return (
+    <div className="max-w-2xl">
+      <H2>1:1 with Jordan</H2>
+      <Lead>
+        Jordan is a Steady-style direct report. Since the reorg, they've gone
+        quiet. You have this conversation to bring them back into the room.
+      </Lead>
+
+      {state.scenarioChoices.map((choiceIdx, i) => {
+        const s = JORDAN_SCENARIO[i];
+        const c = s.choices[choiceIdx];
+        return (
+          <div key={i} className="mb-3 space-y-2">
+            <div
+              className="rounded-lg p-3 text-sm italic"
+              style={{
+                backgroundColor: "var(--muted)",
+                color: "var(--foreground)",
+              }}
+            >
+              Jordan: "{s.jordan}"
+            </div>
+            <div
+              className="rounded-lg p-3 text-sm"
+              style={{
+                backgroundColor: "var(--sky)",
+                color: "var(--foundation)",
+              }}
+            >
+              You: "{c.reply}"
+            </div>
+            <FeedbackBox choice={c} />
+          </div>
+        );
+      })}
+
+      {inProgress && (
+        <Card className="mt-4">
+          <div
+            className="mb-2 text-xs font-semibold uppercase tracking-wider"
+            style={{ color: "var(--muted-foreground)" }}
+          >
+            Scene {stepIdx + 1} of {JORDAN_SCENARIO.length}
+          </div>
+          <div
+            className="mb-3 text-sm"
+            style={{ color: "var(--muted-foreground)" }}
+          >
+            {step.setup}
+          </div>
+          <div
+            className="mb-4 rounded-lg p-3 text-sm italic"
+            style={{
+              backgroundColor: "var(--muted)",
+              color: "var(--foreground)",
+            }}
+          >
+            Jordan: "{step.jordan}"
+          </div>
+          <div className="space-y-2">
+            {step.choices.map((c, i) => (
+              <button
+                key={i}
+                onClick={() =>
+                  update({ scenarioChoices: [...state.scenarioChoices, i] })
+                }
+                className="block w-full rounded-lg border px-3 py-2 text-left text-sm transition hover:border-[var(--deep)]"
+                style={{
+                  borderColor: "var(--warm-gray)",
+                  backgroundColor: "#fff",
+                  color: "var(--foundation)",
+                }}
+              >
+                <div className="font-semibold">{c.label}</div>
+                <div
+                  className="mt-0.5 text-xs italic"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
+                  "{c.reply}"
+                </div>
+              </button>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {!inProgress && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            onClick={() => update({ scenarioChoices: [] })}
+            className="rounded-md border px-3 py-1.5 text-sm font-semibold"
+            style={{
+              borderColor: "var(--foundation)",
+              color: "var(--foundation)",
+            }}
+          >
+            Replay scenario
+          </button>
+          <span
+            className="text-xs"
+            style={{ color: "var(--muted-foreground)", alignSelf: "center" }}
+          >
+            Try a different mix and see how Jordan reacts.
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FeedbackBox({
+  choice,
+}: {
+  choice: (typeof JORDAN_SCENARIO)[number]["choices"][number];
+}) {
+  const color =
+    choice.landed === "well"
+      ? "var(--sonic)"
+      : choice.landed === "ok"
+        ? "var(--origin)"
+        : "var(--rucksack)";
+  const soft =
+    choice.landed === "well"
+      ? "var(--sonic-soft)"
+      : choice.landed === "ok"
+        ? "var(--origin-soft)"
+        : "var(--rucksack-soft)";
+  return (
+    <div
+      className="rounded-lg border p-3 text-sm"
+      style={{ borderColor: color, backgroundColor: soft, color: "var(--foundation)" }}
+    >
+      <div className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider">
+        <StyleBadge style={choice.style} size="sm" />
+        <span>Landed {choice.landed}</span>
+      </div>
+      <div className="mb-1">
+        <b>What Jordan does:</b> {choice.reaction}
+      </div>
+      <div>
+        <b>Coach:</b> {choice.coach}
+      </div>
+    </div>
+  );
+}
+
+function TeamScreen({
+  state,
+  update,
+}: {
+  state: ReturnType<typeof useModuleState>["state"];
+  update: ReturnType<typeof useModuleState>["update"];
+}) {
+  const [name, setName] = useState("");
+  const [style, setStyle] = useState<StyleKey | null>(null);
+  const add = () => {
+    if (!name.trim() || !style) return;
+    update({
+      team: [
+        ...state.team,
+        { id: `${Date.now()}`, name: name.trim(), style },
+      ],
+    });
+    setName("");
+    setStyle(null);
+  };
+  const remove = (id: string) =>
+    update({ team: state.team.filter((m) => m.id !== id) });
+
+  return (
+    <div className="max-w-2xl">
+      <H2>Map your team</H2>
+      <Lead>
+        Add 3–5 real people you lead. For each, pick the style they read like
+        under pressure. You'll get a cheat sheet for your next 1:1 with each.
+      </Lead>
+
+      <Card className="mb-4">
+        <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="First name or initial"
+            className="rounded-md border px-3 py-2 text-sm"
+            style={{ borderColor: "var(--warm-gray)" }}
+          />
+          <button
+            onClick={add}
+            disabled={!name.trim() || !style}
+            className="rounded-md px-4 py-2 text-sm font-semibold disabled:opacity-40"
+            style={{ backgroundColor: "var(--deep)", color: "#fff" }}
+          >
+            Add
+          </button>
+        </div>
+        <div className="mt-3">
+          <StylePicker value={style} onChange={setStyle} />
+        </div>
+      </Card>
+
+      {state.team.length === 0 ? (
+        <div
+          className="rounded-md border border-dashed p-6 text-center text-sm"
+          style={{
+            borderColor: "var(--warm-gray)",
+            color: "var(--muted-foreground)",
+          }}
+        >
+          Your team map is empty. Add one person to continue.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {state.team.map((m) => (
+            <TeamCard key={m.id} member={m} onRemove={() => remove(m.id)} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TeamCard({
+  member,
+  onRemove,
+}: {
+  member: { id: string; name: string; style: StyleKey };
+  onRemove: () => void;
+}) {
+  const s = STYLES[member.style];
+  return (
+    <div
+      className="rounded-xl border bg-white p-4"
+      style={{ borderColor: "var(--warm-gray)" }}
+    >
+      <div className="mb-2 flex items-center justify-between">
+        <div
+          className="text-lg font-bold"
+          style={{ color: "var(--foundation)", fontFamily: "var(--font-serif)" }}
+        >
+          {member.name}
+        </div>
+        <div className="flex items-center gap-2">
+          <StyleBadge style={member.style} size="sm" />
+          <button
+            onClick={onRemove}
+            className="text-xs underline"
+            style={{ color: "var(--muted-foreground)" }}
+          >
+            Remove
+          </button>
+        </div>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <CheatCell
+          label="Open with"
+          text={openerFor(member.style)}
+        />
+        <CheatCell
+          label="Avoid"
+          text={STYLES[member.style].blindSpot + " Don't lead with it."}
+        />
+        <CheatCell label="Feedback style" text={feedbackFor(member.style)} />
+      </div>
+      <div
+        className="mt-3 text-xs italic"
+        style={{ color: "var(--muted-foreground)" }}
+      >
+        What {member.name} wants from you: {s.wants.toLowerCase()}
+      </div>
+    </div>
+  );
+}
+function CheatCell({ label, text }: { label: string; text: string }) {
+  return (
+    <div>
+      <div
+        className="mb-1 text-xs font-semibold uppercase tracking-wider"
+        style={{ color: "var(--muted-foreground)" }}
+      >
+        {label}
+      </div>
+      <div className="text-sm" style={{ color: "var(--foreground)" }}>
+        {text}
+      </div>
+    </div>
+  );
+}
+function openerFor(k: StyleKey) {
+  return {
+    d: "The headline. \"Here's the ask, here's the deadline.\"",
+    i: "A shared moment. \"Hey — how was the weekend?\" Then the ask.",
+    s: "Them, before the task. \"How are you holding up?\" Wait for a real answer.",
+    c: "The context. \"Here's what we know, here's the question I need help on.\"",
+  }[k];
+}
+function feedbackFor(k: StyleKey) {
+  return {
+    d: "Direct, in-person, no cushion. State the impact and the fix.",
+    i: "Warm, in-person, private. Frame around growth, not correction.",
+    s: "Private, patient, over a couple of touches. Give them time.",
+    c: "Written first, with examples and criteria. Then discuss.",
+  }[k];
+}
+
+function CapstoneScreen({
+  state,
+  update,
+}: {
+  state: ReturnType<typeof useModuleState>["state"];
+  update: ReturnType<typeof useModuleState>["update"];
+}) {
+  const [loading, setLoading] = useState(false);
+  const [rubricMode, setRubricMode] = useState(false);
+  const [rubricChecks, setRubricChecks] = useState<Set<number>>(new Set());
+  const coach = useServerFn(coachMessage);
+  const who = state.hookWho || "them";
+
+  const run = async () => {
+    if (!state.targetStyle || state.capstoneDraft.trim().length < 20) return;
+    setLoading(true);
+    try {
+      const res = await coach({
+        data: {
+          targetStyle: state.targetStyle,
+          message: state.capstoneDraft,
+          context: state.hookWhat || undefined,
+          mode: "capstone",
+        },
+      });
+      update({
+        capstoneCoach: {
+          score: res.score,
+          hits: res.hits,
+          misses: res.misses,
+          feedback: res.feedback,
+          suggestion: res.suggestion,
+          draft: state.capstoneDraft,
+        },
+      });
+      if (!res.ok) setRubricMode(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="max-w-2xl">
+      <H2>Now write the message that lands</H2>
+      <Lead>
+        Back to {who} from the start. A project deadline just moved up — you
+        need them to re-prioritize and get their piece to you two days early.
+        Write the message the way <b>{who}</b> will actually receive it.
+      </Lead>
+
+      <Card className="mb-4">
+        <StylePicker
+          value={state.targetStyle}
+          onChange={(k) => update({ targetStyle: k })}
+          label={`Which style best fits ${who}?`}
+        />
+      </Card>
+
+      {state.targetStyle && (
+        <Card>
+          <label
+            className="mb-1 block text-sm font-semibold"
+            style={{ color: "var(--foundation)" }}
+          >
+            Your message to {who}
+          </label>
+          <textarea
+            value={state.capstoneDraft}
+            onChange={(e) => update({ capstoneDraft: e.target.value })}
+            rows={7}
+            placeholder="Type the actual message you'd send..."
+            className="w-full rounded-md border px-3 py-2 text-sm"
+            style={{ borderColor: "var(--warm-gray)" }}
+          />
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+            <button
+              onClick={() => setRubricMode((v) => !v)}
+              className="text-xs underline"
+              style={{ color: "var(--muted-foreground)" }}
+            >
+              {rubricMode ? "Use AI coach instead" : "Prefer to self-check with a rubric?"}
+            </button>
+            {!rubricMode && (
+              <button
+                onClick={run}
+                disabled={loading || state.capstoneDraft.trim().length < 20}
+                className="rounded-md px-4 py-2 text-sm font-semibold disabled:opacity-40"
+                style={{ backgroundColor: "var(--deep)", color: "#fff" }}
+              >
+                {loading ? "Coaching…" : "Get coaching on my message"}
+              </button>
+            )}
+          </div>
+
+          {rubricMode && state.targetStyle && (
+            <div className="mt-4">
+              <div
+                className="mb-2 text-sm font-semibold"
+                style={{ color: "var(--foundation)" }}
+              >
+                Check the tells your message hits:
+              </div>
+              <ul className="space-y-1.5">
+                {STYLES[state.targetStyle].tells.map((t, i) => (
+                  <li key={i}>
+                    <label className="flex items-start gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={rubricChecks.has(i)}
+                        onChange={(e) => {
+                          const next = new Set(rubricChecks);
+                          if (e.target.checked) next.add(i);
+                          else next.delete(i);
+                          setRubricChecks(next);
+                          if (next.size >= 3) {
+                            update({
+                              capstoneCoach: {
+                                score: next.size,
+                                hits: Array.from(next).map(
+                                  (n) => STYLES[state.targetStyle!].tells[n],
+                                ),
+                                misses: STYLES[state.targetStyle!].tells.filter(
+                                  (_, idx) => !next.has(idx),
+                                ),
+                                feedback:
+                                  "Self-check locked in. Read once more out loud before you send.",
+                                suggestion: "",
+                                draft: state.capstoneDraft,
+                              },
+                            });
+                          }
+                        }}
+                      />
+                      <span>{t}</span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {state.capstoneCoach && !rubricMode && (
+            <div
+              className="mt-4 rounded-md p-3 text-sm"
+              style={{
+                backgroundColor:
+                  state.capstoneCoach.score >= 3
+                    ? "var(--sonic-soft)"
+                    : "var(--rucksack-soft)",
+                color: "var(--foundation)",
+              }}
+            >
+              <div className="mb-1 font-semibold">
+                {state.capstoneCoach.score}/5 tells landed
+              </div>
+              <div className="mb-2">{state.capstoneCoach.feedback}</div>
+              {state.capstoneCoach.suggestion && (
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-wider">
+                    Suggested rewrite
+                  </div>
+                  <div className="mt-1 italic">
+                    "{state.capstoneCoach.suggestion}"
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function TransferScreen({
+  state,
+  update,
+}: {
+  state: ReturnType<typeof useModuleState>["state"];
+  update: ReturnType<typeof useModuleState>["update"];
+}) {
+  const who = state.hookWho || "someone on your team";
+  const styleName = state.targetStyle
+    ? STYLES[state.targetStyle].name
+    : "their";
+  const defaultCommit = `Send my ${styleName}-flexed message to ${who} within 48 hours, then check in one week later.`;
+
+  const download = () => {
+    const flex = state.targetStyle
+      ? `Lead with what a ${styleName} reader needs: ${STYLES[state.targetStyle].tells[0].toLowerCase()}.`
+      : "Try one flex from your module take-aways.";
+    const ics = buildReminderIcs({
+      who,
+      flex,
+      commitment: state.commitment || defaultCommit,
+    });
+    downloadIcs(`flex-with-${who.replace(/\s+/g, "-").toLowerCase()}.ics`, ics);
+    update({ reminderDownloaded: true });
+  };
+
+  return (
+    <div className="max-w-2xl">
+      <H2>Your 7-day flex</H2>
+      <Lead>
+        One person. One flex. This week. Write it in your own words, then drop
+        a reminder into your calendar so future-you actually does it.
+      </Lead>
+      <Card>
+        <label
+          className="mb-1 block text-sm font-semibold"
+          style={{ color: "var(--foundation)" }}
+        >
+          Your commitment
+        </label>
+        <textarea
+          value={state.commitment}
+          onChange={(e) => update({ commitment: e.target.value })}
+          rows={3}
+          placeholder={defaultCommit}
+          className="w-full rounded-md border px-3 py-2 text-sm"
+          style={{ borderColor: "var(--warm-gray)" }}
+        />
+        <button
+          onClick={download}
+          className="mt-3 rounded-md px-4 py-2 text-sm font-semibold"
+          style={{ backgroundColor: "var(--deep)", color: "#fff" }}
+        >
+          {state.reminderDownloaded ? "Downloaded — download again" : "Remind me in 7 days (.ics)"}
+        </button>
+        <div
+          className="mt-2 text-xs"
+          style={{ color: "var(--muted-foreground)" }}
+        >
+          Opens in Outlook, Google Calendar, or Apple Calendar. Nothing is
+          emailed. Nothing is tracked.
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function PostScreen({
+  state,
+  update,
+}: {
+  state: ReturnType<typeof useModuleState>["state"];
+  update: ReturnType<typeof useModuleState>["update"];
+}) {
+  const delta =
+    state.confidencePre !== null && state.confidencePost !== null
+      ? state.confidencePost - state.confidencePre
+      : null;
+  return (
+    <div className="max-w-2xl">
+      <H2>How confident are you now?</H2>
+      <Lead>
+        Same question you answered at the start. Honest is more useful than
+        high.
+      </Lead>
+      <Card>
+        <ConfidenceSlider
+          value={state.confidencePost}
+          onChange={(v) => update({ confidencePost: v })}
+        />
+        {state.confidencePre !== null && state.confidencePost !== null && (
+          <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+            <StatMini label="Before" value={state.confidencePre} />
+            <StatMini label="After" value={state.confidencePost} />
+            <StatMini
+              label="Change"
+              value={(delta ?? 0) >= 0 ? `+${delta}` : `${delta}`}
+              highlight
+            />
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+function StatMini({
+  label,
+  value,
+  highlight,
+}: {
+  label: string;
+  value: number | string;
+  highlight?: boolean;
+}) {
+  return (
+    <div
+      className="rounded-md border p-3"
+      style={{
+        borderColor: highlight ? "var(--sonic)" : "var(--warm-gray)",
+        backgroundColor: highlight ? "var(--sonic-soft)" : "#fff",
+      }}
+    >
+      <div
+        className="text-xs uppercase tracking-wider"
+        style={{ color: "var(--muted-foreground)" }}
+      >
+        {label}
+      </div>
+      <div
+        className="text-2xl font-bold"
+        style={{ color: "var(--foundation)", fontFamily: "var(--font-serif)" }}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function RecapScreen({
+  state,
+}: {
+  state: ReturnType<typeof useModuleState>["state"];
+}) {
+  const target = state.targetStyle ? STYLES[state.targetStyle] : null;
+  const [copied, setCopied] = useState(false);
+  const plan = [
+    `Person: ${state.hookWho || "—"}`,
+    `Their style: ${target?.name ?? "—"}`,
+    `Commitment: ${state.commitment || "—"}`,
+    "",
+    "The message I'll send:",
+    state.capstoneDraft || "—",
+  ].join("\n");
+
+  return (
+    <div className="max-w-2xl">
+      <div className="mb-4 flex items-center gap-2">
+        <div
+          className="flex h-10 w-10 items-center justify-center rounded-full text-lg font-bold"
+          style={{ backgroundColor: "var(--sonic)", color: "#fff" }}
+        >
+          ✓
+        </div>
+        <H2>You built something real</H2>
+      </div>
+      <Lead>
+        Not a quiz score — a message flexed for a real person. Copy your plan
+        below and take it with you.
+      </Lead>
+
+      <Card>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <RecapRow label="Your default" value={state.selfStyle ? STYLES[state.selfStyle].name : "—"} />
+          <RecapRow label="Person" value={state.hookWho || "—"} />
+          <RecapRow label="Their style" value={target?.name ?? "—"} />
+          <RecapRow
+            label="Confidence"
+            value={
+              state.confidencePre !== null && state.confidencePost !== null
+                ? `${state.confidencePre} → ${state.confidencePost}`
+                : "—"
+            }
+          />
+        </div>
+        {state.capstoneDraft && (
+          <div
+            className="mt-4 rounded-md p-3 text-sm"
+            style={{
+              backgroundColor: "var(--off-white)",
+              color: "var(--foreground)",
+            }}
+          >
+            <div
+              className="mb-1 text-xs font-semibold uppercase tracking-wider"
+              style={{ color: "var(--muted-foreground)" }}
+            >
+              Your message
+            </div>
+            <div className="whitespace-pre-wrap">{state.capstoneDraft}</div>
+          </div>
+        )}
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(plan);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            }}
+            className="rounded-md px-4 py-2 text-sm font-semibold"
+            style={{ backgroundColor: "var(--deep)", color: "#fff" }}
+          >
+            {copied ? "Copied!" : "Copy my plan"}
+          </button>
+          <button
+            onClick={() => window.print()}
+            className="rounded-md border px-4 py-2 text-sm font-semibold"
+            style={{
+              borderColor: "var(--foundation)",
+              color: "var(--foundation)",
+            }}
+          >
+            Print cheat sheet
+          </button>
+        </div>
+      </Card>
+
+      {state.team.length > 0 && (
+        <div className="mt-6">
+          <H2>Your team map</H2>
+          <div className="space-y-2">
+            {state.team.map((m) => (
+              <div
+                key={m.id}
+                className="flex items-center justify-between rounded-md border bg-white px-3 py-2"
+                style={{ borderColor: "var(--warm-gray)" }}
+              >
+                <span
+                  className="text-sm font-semibold"
+                  style={{ color: "var(--foundation)" }}
+                >
+                  {m.name}
+                </span>
+                <StyleBadge style={m.style} size="sm" />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+function RecapRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div
+        className="text-xs font-semibold uppercase tracking-wider"
+        style={{ color: "var(--muted-foreground)" }}
+      >
+        {label}
+      </div>
+      <div
+        className="text-lg"
+        style={{ color: "var(--foundation)", fontFamily: "var(--font-serif)" }}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
