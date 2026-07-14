@@ -1133,6 +1133,7 @@ function ActivitySummary({
         </div>
       </div>
     </div>
+    </>
   );
 }
 
