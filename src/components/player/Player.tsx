@@ -795,6 +795,20 @@ function handleRadioGroupKey(e: React.KeyboardEvent<HTMLButtonElement>) {
   target.click();
 }
 
+// Focus the first matching element on the next paint so React has committed the DOM.
+function focusNext(selector: string) {
+  requestAnimationFrame(() => {
+    const el = document.querySelector<HTMLElement>(selector);
+    el?.focus();
+  });
+}
+
+// Safely encode a value for use in an attribute selector.
+function attrEscape(v: string) {
+  // CSS.escape is on all modern browsers we target.
+  return typeof CSS !== "undefined" && CSS.escape ? CSS.escape(v) : v;
+}
+
 function WelcomeScreen({ onStart }: { onStart: () => void }) {
   return (
     <div className="grid gap-8 lg:grid-cols-[1.15fr_1fr] lg:items-center lg:gap-12">
@@ -1262,7 +1276,21 @@ function SortScreen({
   const total = ALL_TRAITS.length;
 
   const setTrait = (trait: string, k: StyleKey) => {
-    update({ sortAnswers: { ...state.sortAnswers, [trait]: k } });
+    const nextAnswers = { ...state.sortAnswers, [trait]: k };
+    update({ sortAnswers: nextAnswers });
+    // Move focus to the next unanswered trait; when all are answered, jump to Check answers.
+    if (Object.keys(nextAnswers).length >= ALL_TRAITS.length) {
+      focusNext('[data-focus="sort-check"]');
+    } else {
+      const nextUnanswered = ALL_TRAITS.find(
+        (t) => nextAnswers[t.trait] === undefined,
+      );
+      if (nextUnanswered) {
+        focusNext(
+          `[data-focus-group="sort-${attrEscape(nextUnanswered.trait)}"] [role="radio"]`,
+        );
+      }
+    }
   };
   const correct = ALL_TRAITS.filter(
     (t) => state.sortAnswers[t.trait] === t.style,
@@ -1298,6 +1326,7 @@ function SortScreen({
                     : "var(--rucksack)"
                   : "var(--warm-gray)",
               }}
+              data-focus-group={`sort-${trait}`}
             >
               <span className="text-sm font-semibold" style={{ color: "var(--foundation)" }}>
                 {trait}
@@ -1343,6 +1372,7 @@ function SortScreen({
         <button
           disabled={answered < total}
           onClick={() => setChecked(true)}
+          data-focus="sort-check"
           className="rounded-md border px-4 py-2 text-sm font-semibold disabled:opacity-40"
           style={{
             borderColor: "var(--foundation)",
@@ -1379,7 +1409,18 @@ function MatchScreen({
 }) {
   const [checked, setChecked] = useState(false);
   const set = (k: StyleKey, blindStyle: StyleKey) => {
-    update({ matchAnswers: { ...state.matchAnswers, [k]: blindStyle } });
+    const next = { ...state.matchAnswers, [k]: blindStyle };
+    update({ matchAnswers: next });
+    if (STYLE_ORDER.every((s) => next[s] !== null)) {
+      focusNext('[data-focus="match-check"]');
+    } else {
+      const nextStyle = STYLE_ORDER.find((s) => next[s] === null);
+      if (nextStyle) {
+        focusNext(
+          `[data-focus-group="match-${nextStyle}"] [role="radio"]`,
+        );
+      }
+    }
   };
   const allAnswered = STYLE_ORDER.every((k) => state.matchAnswers[k] !== null);
   return (
@@ -1406,6 +1447,7 @@ function MatchScreen({
             key={k}
             className="rounded-xl border bg-white p-4"
             style={{ borderColor: "var(--warm-gray)" }}
+            data-focus-group={`match-${k}`}
           >
             <div className="mb-2 flex items-center gap-2">
               <StyleBadge style={k} />
@@ -1458,6 +1500,7 @@ function MatchScreen({
         <button
           disabled={!allAnswered}
           onClick={() => setChecked(true)}
+          data-focus="match-check"
           className="rounded-md border px-4 py-2 text-sm font-semibold disabled:opacity-40"
           style={{
             borderColor: "var(--foundation)",
@@ -1628,6 +1671,19 @@ function RewriterScreen({
           },
         },
       });
+      // If this rewrite landed and there's another style to try, jump the learner
+      // to that tab so they can keep moving. Otherwise leave focus on the score card.
+      if (res.score >= 3) {
+        const nextIncomplete = STYLE_ORDER.find(
+          (k) => k !== active && (state.rewriter[k]?.score ?? 0) < 3,
+        );
+        if (nextIncomplete) {
+          setActive(nextIncomplete);
+          focusNext(`[data-focus="rewriter-tab-${nextIncomplete}"]`);
+        } else {
+          focusNext('[data-focus="rewriter-score"]');
+        }
+      }
     } finally {
       setLoading(false);
     }
@@ -1702,6 +1758,7 @@ function RewriterScreen({
             <button
               key={k}
               onClick={() => setActive(k)}
+              data-focus={`rewriter-tab-${k}`}
               aria-label={
                 done
                   ? `${STYLES[k].name} — completed`
@@ -1801,6 +1858,8 @@ function RewriterScreen({
         {entry && (
           <div
             className="mt-4 rounded-md p-3 text-sm"
+            data-focus="rewriter-score"
+            tabIndex={-1}
             style={{
               backgroundColor:
                 entry.score >= 3 ? "var(--sonic-soft)" : "var(--rucksack-soft)",
@@ -1951,13 +2010,23 @@ function ScenarioScreen({
             className="space-y-2"
             role="radiogroup"
             aria-label={`Scene ${stepIdx + 1} choices`}
+            data-focus-group={`scenario-scene-${stepIdx}`}
           >
             {step.choices.map((c, i) => (
               <button
                 key={i}
-                onClick={() =>
-                  update({ scenarioChoices: [...state.scenarioChoices, i] })
-                }
+                onClick={() => {
+                  const nextChoices = [...state.scenarioChoices, i];
+                  update({ scenarioChoices: nextChoices });
+                  // Route focus: next scene's first choice, or the Replay button if done.
+                  if (nextChoices.length >= JORDAN_SCENARIO.length) {
+                    focusNext('[data-focus="scenario-replay"]');
+                  } else {
+                    focusNext(
+                      `[data-focus-group="scenario-scene-${nextChoices.length}"] [role="radio"]`,
+                    );
+                  }
+                }}
                 onKeyDown={handleRadioGroupKey}
                 role="radio"
                 aria-checked={false}
@@ -1988,6 +2057,7 @@ function ScenarioScreen({
           <div className="mt-4 flex flex-wrap gap-2">
             <button
               onClick={() => update({ scenarioChoices: [] })}
+              data-focus="scenario-replay"
               className="rounded-md border px-3 py-1.5 text-sm font-semibold"
               style={{
                 borderColor: "var(--foundation)",
