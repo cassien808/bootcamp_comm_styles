@@ -556,6 +556,9 @@ function StylePicker({
   onChange: (k: StyleKey) => void;
   label?: string;
 }) {
+  return _StylePicker({ value, onChange, label });
+}
+function _StylePicker({ value, onChange, label }: { value: StyleKey | null; onChange: (k: StyleKey) => void; label?: string; }) {
   return (
     <div>
       {label && (
