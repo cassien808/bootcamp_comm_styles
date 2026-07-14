@@ -1415,7 +1415,11 @@ function RewriterScreen({
   state: ReturnType<typeof useModuleState>["state"];
   update: ReturnType<typeof useModuleState>["update"];
 }) {
-  const [active, setActive] = useState<StyleKey>("d");
+  // Resume on the first incomplete style so returners land where there's work left.
+  const firstIncomplete = STYLE_ORDER.find(
+    (k) => (state.rewriter[k]?.score ?? 0) < 3,
+  );
+  const [active, setActive] = useState<StyleKey>(firstIncomplete ?? "d");
   const [draft, setDraft] = useState(state.rewriter[active]?.draft ?? "");
   const [loading, setLoading] = useState(false);
   const coach = useServerFn(coachMessage);
@@ -1458,6 +1462,10 @@ function RewriterScreen({
     (k) => (state.rewriter[k]?.score ?? 0) >= 3,
   ).length;
   const allDone = doneCount === STYLE_ORDER.length;
+  const activeDone = (entry?.score ?? 0) >= 3;
+  const doneStyles = STYLE_ORDER.filter(
+    (k) => (state.rewriter[k]?.score ?? 0) >= 3,
+  );
   return (
     <div className="max-w-2xl">
       <H2>Rewrite one message four ways</H2>
@@ -1475,6 +1483,19 @@ function RewriterScreen({
               : `You've already finished ${doneCount} of 4 rewrites. Completed tabs show a check — feel free to open one to reread your feedback.`
           }
         />
+      )}
+      {doneCount > 0 && !allDone && (
+        <div
+          className="mb-3 text-xs"
+          style={{ color: "var(--muted-foreground)" }}
+        >
+          <span className="font-semibold" style={{ color: "var(--foundation)" }}>
+            Already finished:
+          </span>{" "}
+          {doneStyles
+            .map((k) => `${STYLES[k].name} (${state.rewriter[k]?.score}/5)`)
+            .join(" · ")}
+        </div>
       )}
       <Card className="mb-4">
         <div
@@ -1544,6 +1565,30 @@ function RewriterScreen({
         >
           {STYLES[active].tagline}
         </div>
+        {activeDone && (
+          <div
+            className="mb-3 flex items-start gap-2 rounded-md border p-2 text-xs"
+            style={{
+              borderColor: "var(--sonic)",
+              backgroundColor: "var(--sonic-soft)",
+              color: "var(--foundation)",
+            }}
+            role="status"
+          >
+            <span
+              aria-hidden="true"
+              className="grid h-4 w-4 shrink-0 place-items-center rounded-full text-[10px] font-bold"
+              style={{ backgroundColor: "var(--sonic)", color: "#fff" }}
+            >
+              ✓
+            </span>
+            <span>
+              <b>Already completed</b> — you landed {entry?.score}/5 tells for{" "}
+              {STYLES[active].name}. Your last draft and feedback are here. Edit
+              and tap <b>Get feedback</b> again to try a new take.
+            </span>
+          </div>
+        )}
         <textarea
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
@@ -1637,12 +1682,31 @@ function ScenarioScreen({
           text="You finished this conversation. Your choices and feedback are below — replay any time to try a different mix."
         />
       )}
+      {inProgress && state.scenarioChoices.length > 0 && (
+        <CompletionBanner
+          done={false}
+          text={`Picking up at Scene ${stepIdx + 1} of ${JORDAN_SCENARIO.length}. Your ${state.scenarioChoices.length} earlier ${state.scenarioChoices.length === 1 ? "choice is" : "choices are"} shown below with feedback — the next scene is at the bottom.`}
+        />
+      )}
 
       {state.scenarioChoices.map((choiceIdx, i) => {
         const s = JORDAN_SCENARIO[i];
         const c = s.choices[choiceIdx];
         return (
           <div key={i} className="mb-3 space-y-2">
+            <div
+              className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider"
+              style={{ color: "var(--sonic)" }}
+            >
+              <span
+                aria-hidden="true"
+                className="grid h-4 w-4 place-items-center rounded-full text-[10px] font-bold"
+                style={{ backgroundColor: "var(--sonic)", color: "#fff" }}
+              >
+                ✓
+              </span>
+              Scene {i + 1} of {JORDAN_SCENARIO.length} — completed
+            </div>
             <div
               className="rounded-lg p-3 text-sm italic"
               style={{
