@@ -77,14 +77,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Communication Styles for People Leaders" },
+      { title: "Communication Styles for Supervisors/Managers" },
       {
         name: "description",
         content:
-          "A guided practice module for people leaders. Learn the four communication styles, flex your approach, and write a message that lands.",
+          "A guided practice module for supervisors and managers. Learn the four communication styles, flex your approach, and write a message that lands.",
       },
       { name: "author", content: "SanMar Learning" },
-      { property: "og:title", content: "Communication Styles for People Leaders" },
+      { property: "og:title", content: "Communication Styles for Supervisors/Managers" },
       {
         property: "og:description",
         content:
