@@ -735,6 +735,7 @@ function ActivityGuide({
 }) {
   return (
     <div
+      data-activity-guide
       className="mb-4 rounded-lg border-l-4 p-3 text-sm"
       style={{
         borderLeftColor: "var(--deep)",
