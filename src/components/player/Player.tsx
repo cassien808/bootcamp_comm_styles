@@ -1772,11 +1772,25 @@ function TeamScreen({
           Your team map is empty. Add one person to continue.
         </div>
       ) : (
-        <div className="space-y-3">
-          {state.team.map((m) => (
-            <TeamCard key={m.id} member={m} onRemove={() => remove(m.id)} />
-          ))}
-        </div>
+        <>
+          <div id="team-print" className="space-y-3">
+            {state.team.map((m) => (
+              <TeamCard key={m.id} member={m} onRemove={() => remove(m.id)} />
+            ))}
+          </div>
+          <div className="mt-4 flex justify-end print:hidden">
+            <button
+              onClick={() => window.print()}
+              className="rounded-md border px-4 py-2 text-sm font-semibold"
+              style={{
+                borderColor: "var(--foundation)",
+                color: "var(--foundation)",
+              }}
+            >
+              Print my team map
+            </button>
+          </div>
+        </>
       )}
     </div>
   );
