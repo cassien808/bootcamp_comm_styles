@@ -1682,12 +1682,31 @@ function ScenarioScreen({
           text="You finished this conversation. Your choices and feedback are below — replay any time to try a different mix."
         />
       )}
+      {inProgress && state.scenarioChoices.length > 0 && (
+        <CompletionBanner
+          done={false}
+          text={`Picking up at Scene ${stepIdx + 1} of ${JORDAN_SCENARIO.length}. Your ${state.scenarioChoices.length} earlier ${state.scenarioChoices.length === 1 ? "choice is" : "choices are"} shown below with feedback — the next scene is at the bottom.`}
+        />
+      )}
 
       {state.scenarioChoices.map((choiceIdx, i) => {
         const s = JORDAN_SCENARIO[i];
         const c = s.choices[choiceIdx];
         return (
           <div key={i} className="mb-3 space-y-2">
+            <div
+              className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider"
+              style={{ color: "var(--sonic)" }}
+            >
+              <span
+                aria-hidden="true"
+                className="grid h-4 w-4 place-items-center rounded-full text-[10px] font-bold"
+                style={{ backgroundColor: "var(--sonic)", color: "#fff" }}
+              >
+                ✓
+              </span>
+              Scene {i + 1} of {JORDAN_SCENARIO.length} — completed
+            </div>
             <div
               className="rounded-lg p-3 text-sm italic"
               style={{
