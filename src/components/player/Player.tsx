@@ -2384,6 +2384,22 @@ function TransferScreen({
     update({ reminderDownloaded: true });
   };
 
+  const downloadCheckIn = () => {
+    const flex = state.targetStyle
+      ? `Reflect: how did your ${styleName}-flex land with ${who}? What shifted?`
+      : `Reflect: how did your flex with ${who} go? What shifted?`;
+    const ics = buildReminderIcs({
+      who,
+      flex,
+      commitment: state.commitment || defaultCommit,
+      daysFromNow: 30,
+    });
+    downloadIcs(
+      `flex-checkin-${who.replace(/\s+/g, "-").toLowerCase()}.ics`,
+      ics,
+    );
+  };
+
   return (
     <div className="max-w-2xl">
       <H2>Your 7-day flex</H2>
@@ -2413,11 +2429,22 @@ function TransferScreen({
         >
           {state.reminderDownloaded ? "Downloaded — download again" : "Remind me in 7 days (.ics)"}
         </button>
+        <button
+          onClick={downloadCheckIn}
+          className="ml-2 mt-3 rounded-md border px-4 py-2 text-sm font-semibold"
+          style={{
+            borderColor: "var(--foundation)",
+            color: "var(--foundation)",
+          }}
+        >
+          Add a 30-day check-in
+        </button>
         <div
           className="mt-2 text-xs"
           style={{ color: "var(--muted-foreground)" }}
         >
-          Opens in Outlook, Google Calendar, or Apple Calendar. Nothing is
+          Both open in Outlook, Google Calendar, or Apple Calendar. The 7-day
+          nudges you to try it. The 30-day asks you what shifted. Nothing is
           emailed. Nothing is tracked.
         </div>
         <div
