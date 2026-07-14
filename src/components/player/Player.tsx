@@ -1061,6 +1061,7 @@ function SortScreen({
                     <button
                       key={k}
                       onClick={() => setTrait(trait, k)}
+                      aria-label={`Mark ${trait} as ${STYLES[k].name}`}
                       className="rounded-md border px-2.5 py-1 text-xs font-semibold"
                       style={{
                         borderColor: active
