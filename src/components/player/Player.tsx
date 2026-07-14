@@ -93,7 +93,7 @@ export function Player() {
         />
       )}
 
-      <div className="mx-auto flex min-h-screen max-w-3xl flex-col">
+      <div className="mx-auto flex min-h-screen max-w-5xl flex-col">
         <Topbar cur={cur} total={total} />
 
         <div ref={stageRef} className="flex-1 px-5 py-8 sm:px-8 sm:py-10">
@@ -142,7 +142,7 @@ function ResumeBanner({
         borderColor: "var(--warm-gray)",
       }}
     >
-      <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm">
+      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm">
         <span style={{ color: "var(--foundation)" }}>
           Welcome back. Resume at <b>{screen}</b>?
         </span>
@@ -834,12 +834,13 @@ function SortScreen({
   ).length;
 
   return (
-    <div className="max-w-2xl">
-      <H2>Sort each trait to its style</H2>
+    <div>
+      <H2>Pick the style that best matches each trait</H2>
       <Lead>
-        Quick pattern-recognition warm-up. Tap a style for each trait.
+        A quick warm-up. For each trait below, tap the style it fits best
+        (D = Dominant, I = Influencer, S = Steady, C = Conscientious).
       </Lead>
-      <div className="space-y-2">
+      <div className="grid gap-2 sm:grid-cols-2">
         {ALL_TRAITS.map(({ trait, style }) => {
           const picked = state.sortAnswers[trait];
           const isRight = picked === style;
@@ -931,12 +932,14 @@ function MatchScreen({
   const allAnswered = STYLE_ORDER.every((k) => state.matchAnswers[k] !== null);
   return (
     <div className="max-w-2xl">
-      <H2>Match each style to its blind spot</H2>
+      <H2>Find each style's blind spot</H2>
       <Lead>
-        Every strength has a shadow. For each style, pick the blind spot that
-        fits.
+        Every strength has a downside. You'll see four styles below. Under each
+        one, pick the sentence that describes the trap that style tends to fall
+        into. One answer per style. Example: the Dominant style's blind spot is
+        moving so fast that people feel run over.
       </Lead>
-      <div className="space-y-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         {STYLE_ORDER.map((k) => (
           <div
             key={k}
@@ -1156,8 +1159,9 @@ function RewriterScreen({
     <div className="max-w-2xl">
       <H2>Rewrite one message four ways</H2>
       <Lead>
-        Same ask, four readers. Rewrite the bland source below in each style.
-        Hit at least 3 of 5 tells per style to move on.
+        Same ask, four readers. Pick a style tab, rewrite the message below so
+        it sounds like that style, then tap <b>Get feedback</b>. Land 3 of 5
+        tells for each style to finish.
       </Lead>
       <Card className="mb-4">
         <div
