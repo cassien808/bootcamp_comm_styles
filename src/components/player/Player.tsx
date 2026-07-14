@@ -1571,26 +1571,103 @@ function ScenarioScreen({
       )}
 
       {!inProgress && (
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button
-            onClick={() => update({ scenarioChoices: [] })}
-            className="rounded-md border px-3 py-1.5 text-sm font-semibold"
-            style={{
-              borderColor: "var(--foundation)",
-              color: "var(--foundation)",
-            }}
-          >
-            Replay scenario
-          </button>
-          <span
-            className="text-xs"
-            style={{ color: "var(--muted-foreground)", alignSelf: "center" }}
-          >
-            Try a different mix and see how Jordan reacts.
-          </span>
-        </div>
+        <>
+          <ScenarioSummary choices={state.scenarioChoices} />
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              onClick={() => update({ scenarioChoices: [] })}
+              className="rounded-md border px-3 py-1.5 text-sm font-semibold"
+              style={{
+                borderColor: "var(--foundation)",
+                color: "var(--foundation)",
+              }}
+            >
+              Replay scenario
+            </button>
+            <span
+              className="text-xs"
+              style={{ color: "var(--muted-foreground)", alignSelf: "center" }}
+            >
+              Try a different mix and see how Jordan reacts.
+            </span>
+          </div>
+        </>
       )}
     </div>
+  );
+}
+
+function ScenarioSummary({ choices }: { choices: number[] }) {
+  const styleCounts: Record<StyleKey, number> = { d: 0, i: 0, s: 0, c: 0 };
+  let wells = 0;
+  let poors = 0;
+  choices.forEach((choiceIdx, i) => {
+    const c = JORDAN_SCENARIO[i].choices[choiceIdx];
+    styleCounts[c.style] += 1;
+    if (c.landed === "well") wells += 1;
+    if (c.landed === "poorly") poors += 1;
+  });
+  const topStyle = (Object.keys(styleCounts) as StyleKey[]).reduce((a, b) =>
+    styleCounts[a] >= styleCounts[b] ? a : b,
+  );
+  const topCount = styleCounts[topStyle];
+  const total = choices.length;
+  const takeaway =
+    wells === total
+      ? "You matched Jordan's register on every turn. That's the flex."
+      : wells >= 2
+        ? "Strong session. Where you didn't land well, watch how a quieter, more Steady tone changes what Jordan gives you."
+        : poors >= 2
+          ? "You defaulted to your own style more than Jordan needed. Try again — this time acknowledge the person before the task at every turn."
+          : "Mixed session. Replay it and try leading with acknowledgment before you bring structure or pace.";
+  return (
+    <Card className="mt-4">
+      <div
+        className="mb-3 text-xs font-semibold uppercase tracking-wider"
+        style={{ color: "var(--muted-foreground)" }}
+      >
+        Your pattern this run
+      </div>
+      <div className="mb-3 grid grid-cols-4 gap-2">
+        {STYLE_ORDER.map((k) => (
+          <div
+            key={k}
+            className="rounded-md border p-2 text-center"
+            style={{
+              borderColor:
+                k === topStyle && topCount > 0
+                  ? STYLES[k].colorVar
+                  : "var(--warm-gray)",
+              backgroundColor:
+                k === topStyle && topCount > 0 ? STYLES[k].softVar : "#fff",
+            }}
+          >
+            <div
+              className="text-lg font-bold"
+              style={{ color: "var(--foundation)" }}
+            >
+              {styleCounts[k]}
+            </div>
+            <div
+              className="text-[10px] uppercase tracking-wider"
+              style={{ color: "var(--muted-foreground)" }}
+            >
+              {STYLES[k].name}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div
+        className="mb-2 text-sm"
+        style={{ color: "var(--foreground)" }}
+      >
+        <b>Landed well:</b> {wells}/{total} &nbsp;·&nbsp; <b>Landed poorly:</b>{" "}
+        {poors}/{total}
+      </div>
+      <div className="text-sm" style={{ color: "var(--foundation)" }}>
+        {takeaway}
+      </div>
+    </Card>
   );
 }
 
