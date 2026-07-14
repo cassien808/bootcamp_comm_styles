@@ -556,9 +556,33 @@ function StylePicker({
   onChange: (k: StyleKey) => void;
   label?: string;
 }) {
-  return _StylePicker({ value, onChange, label });
+  return (
+    <StylePickerImpl value={value} onChange={onChange} label={label} />
+  );
 }
-function _StylePicker({ value, onChange, label }: { value: StyleKey | null; onChange: (k: StyleKey) => void; label?: string; }) {
+function CompletionBanner({ done, text }: { done: boolean; text: string }) {
+  return (
+    <div
+      className="mb-4 flex items-start gap-3 rounded-lg border p-3"
+      style={{
+        borderColor: done ? "var(--sonic)" : "var(--core)",
+        backgroundColor: done ? "var(--sonic-soft)" : "var(--sky)",
+        color: "var(--foundation)",
+      }}
+      role="status"
+    >
+      <span
+        aria-hidden="true"
+        className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full text-sm font-bold"
+        style={{ backgroundColor: done ? "var(--sonic)" : "var(--core)", color: "#fff" }}
+      >
+        {done ? "✓" : "…"}
+      </span>
+      <span className="text-sm">{text}</span>
+    </div>
+  );
+}
+function StylePickerImpl({ value, onChange, label }: { value: StyleKey | null; onChange: (k: StyleKey) => void; label?: string; }) {
   return (
     <div>
       {label && (
