@@ -1860,6 +1860,15 @@ function ScenarioScreen({
         Jordan is a Steady-style direct report. Since the reorg, they've gone
         quiet. You have this conversation to bring them back into the room.
       </Lead>
+      <ActivityGuide
+        steps={[
+          "Read what Jordan says at each scene.",
+          "Pick one reply. Use Tab to reach the choices and Arrow keys to move between them.",
+          "See how Jordan reacts, what style your reply signaled, and how a stronger flex would sound.",
+          "Finish all 3 scenes. Replay any time to try a different mix.",
+        ]}
+        example='If Jordan says "I\'m fine, just tired," a warm acknowledgment ("Thanks for saying so — anything from my side making it heavier?") lands better than jumping to solutions.'
+      />
 
       {!inProgress && (
         <CompletionBanner
@@ -1938,13 +1947,21 @@ function ScenarioScreen({
           >
             Jordan: "{step.jordan}"
           </div>
-          <div className="space-y-2">
+          <div
+            className="space-y-2"
+            role="radiogroup"
+            aria-label={`Scene ${stepIdx + 1} choices`}
+          >
             {step.choices.map((c, i) => (
               <button
                 key={i}
                 onClick={() =>
                   update({ scenarioChoices: [...state.scenarioChoices, i] })
                 }
+                onKeyDown={handleRadioGroupKey}
+                role="radio"
+                aria-checked={false}
+                tabIndex={i === 0 ? 0 : -1}
                 className="block w-full rounded-lg border px-3 py-2 text-left text-sm transition hover:border-[var(--deep)]"
                 style={{
                   borderColor: "var(--warm-gray)",
