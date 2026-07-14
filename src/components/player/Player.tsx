@@ -116,6 +116,12 @@ export function Player() {
             update={update}
             goTo={goTo}
           />
+          <ActivitySummary
+            screen={screenKey}
+            state={state}
+            canAdvance={canAdvance}
+            isLast={cur === total - 1}
+          />
         </div>
 
         {cur > 0 && (
@@ -900,6 +906,205 @@ function SkipToActiveControl() {
     >
       Skip to active control
     </a>
+  );
+}
+
+// ----- End-of-activity summary -----
+function summaryFor(
+  screen: Screen,
+  s: ReturnType<typeof useModuleState>["state"],
+): { title: string; items: string[] } | null {
+  switch (screen) {
+    case "activate": {
+      const c = s.confidencePre ?? 0;
+      return {
+        title: "Starting point captured",
+        items: [
+          `Anchored to a real person: ${s.hookWho.trim() || "—"}`,
+          `Pre-module confidence: ${c}/10`,
+        ],
+      };
+    }
+    case "self":
+      return s.selfStyle
+        ? {
+            title: "Default style chosen",
+            items: [
+              `You picked ${STYLES[s.selfStyle].name} as your under-pressure default`,
+              "You'll flex from this baseline in every activity ahead",
+            ],
+          }
+        : null;
+    case "sort": {
+      const total = Object.keys(s.sortAnswers).length;
+      return {
+        title: "Traits sorted",
+        items: [
+          `${total} traits placed across the 4 styles`,
+          "You can now recognize the tells of each style at a glance",
+        ],
+      };
+    }
+    case "match": {
+      const correct = STYLE_ORDER.filter((k) => s.matchAnswers[k] === k).length;
+      return {
+        title: "Blind spots matched",
+        items: [
+          `${correct} of 4 blind spots paired with the right style`,
+          "You know which risks to watch for in each style — including your own",
+        ],
+      };
+    }
+    case "spot": {
+      const answered = Object.keys(s.emailAnswers).length;
+      return {
+        title: "Style spotting complete",
+        items: [
+          `${answered} real-world messages classified by style`,
+          "You can read a message and name the style behind it",
+        ],
+      };
+    }
+    case "rewriter": {
+      const scores = STYLE_ORDER.map((k) => s.rewriter[k]?.score ?? 0);
+      const passed = scores.filter((n) => n >= 3).length;
+      return {
+        title: "Style-flex drill complete",
+        items: [
+          `${passed} of 4 rewrites hit at least 3 of 5 tells`,
+          "You've practiced flexing the same message into every style",
+        ],
+      };
+    }
+    case "scenario":
+      return {
+        title: "Scenario complete",
+        items: [
+          `You made ${s.scenarioChoices.length} decisions with Jordan`,
+          "You've seen how each style choice lands with a Steady report",
+        ],
+      };
+    case "team":
+      return {
+        title: "Team map built",
+        items: [
+          `${s.team.length} teammate${s.team.length === 1 ? "" : "s"} plotted on the DISC grid`,
+          "Each teammate has a printable 1:1 cheat-sheet ready",
+        ],
+      };
+    case "capstone":
+      return s.targetStyle
+        ? {
+            title: "Message drafted",
+            items: [
+              `Targeted at a ${STYLES[s.targetStyle].name} audience`,
+              `${s.capstoneDraft.trim().split(/\s+/).length} words written for your real person`,
+            ],
+          }
+        : null;
+    case "transfer":
+      return {
+        title: "Commitment set",
+        items: [
+          `This week's flex: "${s.commitment.trim().slice(0, 80)}${s.commitment.trim().length > 80 ? "…" : ""}"`,
+          s.reminderDownloaded
+            ? "Calendar reminder downloaded"
+            : "Grab the .ics reminder from the transfer screen if you'd like a nudge",
+        ],
+      };
+    case "post": {
+      const pre = s.confidencePre ?? 0;
+      const post = s.confidencePost ?? 0;
+      const delta = post - pre;
+      return {
+        title: "Confidence check complete",
+        items: [
+          `Before: ${pre}/10 · After: ${post}/10`,
+          `Change: ${delta >= 0 ? "+" : ""}${delta}`,
+        ],
+      };
+    }
+    default:
+      return null;
+  }
+}
+
+function ActivitySummary({
+  screen,
+  state,
+  canAdvance,
+  isLast,
+}: {
+  screen: Screen;
+  state: ReturnType<typeof useModuleState>["state"];
+  canAdvance: boolean;
+  isLast: boolean;
+}) {
+  const summary = summaryFor(screen, state);
+  const shouldShow = canAdvance && !isLast && summary !== null;
+  const prev = useRef(false);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    if (shouldShow && !prev.current) {
+      // Transitioned into completion — move focus to Continue after paint.
+      const t = window.setTimeout(() => {
+        const btn = document.querySelector<HTMLButtonElement>(
+          "[data-footer-continue]",
+        );
+        if (btn && !btn.disabled) btn.focus();
+      }, 120);
+      prev.current = true;
+      return () => window.clearTimeout(t);
+    }
+    if (!shouldShow) prev.current = false;
+  }, [shouldShow, screen]);
+
+  if (!shouldShow || !summary) return null;
+
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      className="mt-8 rounded-2xl border p-5 sm:p-6"
+      style={{
+        borderColor: "var(--sonic)",
+        backgroundColor: "var(--sonic-soft)",
+        color: "var(--foundation)",
+        boxShadow: "var(--shadow-brand)",
+      }}
+    >
+      <div className="flex items-start gap-3">
+        <span
+          aria-hidden="true"
+          className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full text-base font-bold"
+          style={{ backgroundColor: "var(--sonic)", color: "#fff" }}
+        >
+          ✓
+        </span>
+        <div className="flex-1">
+          <h2
+            ref={headingRef}
+            className="mb-2 text-lg font-semibold sm:text-xl"
+            style={{ color: "var(--foundation)" }}
+          >
+            {summary.title}
+          </h2>
+          <ul className="mb-3 space-y-1 text-sm sm:text-base">
+            {summary.items.map((it, i) => (
+              <li key={i} className="flex gap-2">
+                <span aria-hidden="true" style={{ color: "var(--sonic)" }}>•</span>
+                <span>{it}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs sm:text-sm" style={{ color: "var(--muted-foreground)" }}>
+            Focus moved to <strong>Continue</strong> below. Press Enter to advance, or Shift+Tab to review this screen.
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }
 
