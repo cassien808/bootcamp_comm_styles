@@ -2373,6 +2373,15 @@ function TransferScreen({
     : "their";
   const defaultCommit = `Send my ${styleName}-flexed message to ${who} within 48 hours, then check in one week later.`;
 
+  // Pre-fill the commitment so learners can accept the suggested wording with
+  // one click — they can still edit it, and Continue isn't blocked on typing.
+  useEffect(() => {
+    if (!state.commitment.trim()) {
+      update({ commitment: defaultCommit });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const download = () => {
     const flex = state.targetStyle
       ? `Lead with what a ${styleName} reader needs: ${STYLES[state.targetStyle].tells[0].toLowerCase()}.`
