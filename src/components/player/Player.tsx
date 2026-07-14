@@ -116,6 +116,12 @@ export function Player() {
             update={update}
             goTo={goTo}
           />
+          <ActivitySummary
+            screen={screenKey}
+            state={state}
+            canAdvance={canAdvance}
+            isLast={cur === total - 1}
+          />
         </div>
 
         {cur > 0 && (
