@@ -240,8 +240,13 @@ function Topbar({
           <span
             className="text-xs tabular-nums"
             style={{ color: "var(--muted-foreground)" }}
+            aria-hidden="true"
           >
             Step {cur + 1} of {total}
+            <span className="mx-1.5" style={{ opacity: 0.6 }}>
+              •
+            </span>
+            {Math.round((cur / Math.max(1, total - 1)) * 100)}% complete
           </span>
         </div>
       </div>
@@ -251,7 +256,10 @@ function Topbar({
         aria-valuenow={cur + 1}
         aria-valuemin={1}
         aria-valuemax={total}
-        aria-label={`Step ${cur + 1} of ${total}: ${SCREEN_TITLES[SCREENS[cur]]}`}
+        aria-label="Course progress"
+        aria-valuetext={`Step ${cur + 1} of ${total}: ${SCREEN_TITLES[SCREENS[cur]]} — ${Math.round(
+          (cur / Math.max(1, total - 1)) * 100,
+        )} percent complete`}
       >
         {Array.from({ length: total }).map((_, i) => (
           <button
