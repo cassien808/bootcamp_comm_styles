@@ -1657,7 +1657,7 @@ function RewriterScreen({
           "Tap Get feedback — AI scores how many tells you landed and suggests a rewrite.",
           "Land at least 3 of 5 for each style to finish.",
         ]}
-        example='For Dominant, try: "Deadline moved up. Need your piece by Wed EOD. Two options if that\'s tight — reply which one works." Short, direct, deadline first.'
+        example={`For Dominant, try: "Deadline moved up. Need your piece by Wed EOD. Two options if that's tight — reply which one works." Short, direct, deadline first.`}
       />
       {doneCount > 0 && (
         <CompletionBanner
