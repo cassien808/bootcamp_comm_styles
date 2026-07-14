@@ -1156,7 +1156,7 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
         >
           Guided practice · 20 min
         </div>
-        <H1>Communication styles for people leaders</H1>
+        <H1>Communication styles for supervisors/managers</H1>
         <Lead>
           Read the room. Flex your message. Send something that actually lands.
           You'll practice on a real person and leave with a message ready to
