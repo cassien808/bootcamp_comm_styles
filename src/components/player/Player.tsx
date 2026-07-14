@@ -54,6 +54,7 @@ const SCREEN_TITLES: Record<Screen, string> = {
 export function Player() {
   const { state, update, reset, goTo, hydrated } = useModuleState();
   const [showResume, setShowResume] = useState(false);
+  const [cheatOpen, setCheatOpen] = useState(false);
 
   // Only prompt to resume once, on first hydration — not every time the learner advances.
   useEffect(() => {
@@ -96,7 +97,12 @@ export function Player() {
       )}
 
       <div className="mx-auto flex min-h-screen max-w-5xl flex-col">
-        <Topbar cur={cur} total={total} />
+        <Topbar
+          cur={cur}
+          total={total}
+          onOpenCheat={() => setCheatOpen(true)}
+          onJump={(i) => goTo(i)}
+        />
 
         <div ref={stageRef} className="flex-1 px-5 py-8 sm:px-8 sm:py-10">
           <ScreenView
@@ -123,6 +129,7 @@ export function Player() {
           />
         )}
       </div>
+      <CheatSheetDrawer open={cheatOpen} onClose={() => setCheatOpen(false)} />
     </div>
   );
 }
@@ -176,7 +183,17 @@ function ResumeBanner({
   );
 }
 
-function Topbar({ cur, total }: { cur: number; total: number }) {
+function Topbar({
+  cur,
+  total,
+  onOpenCheat,
+  onJump,
+}: {
+  cur: number;
+  total: number;
+  onOpenCheat: () => void;
+  onJump: (i: number) => void;
+}) {
   return (
     <div
       className="sticky top-0 z-10 border-b px-5 pt-4 pb-3 sm:px-8"
@@ -193,18 +210,37 @@ function Topbar({ cur, total }: { cur: number; total: number }) {
         >
           Communication Styles for People Leaders
         </span>
-        <span
-          className="text-xs tabular-nums"
-          style={{ color: "var(--muted-foreground)" }}
-        >
-          Step {cur + 1} of {total}
-        </span>
+        <div className="flex items-center gap-3">
+          {cur >= 3 && (
+            <button
+              onClick={onOpenCheat}
+              className="rounded-md border px-2.5 py-1 text-xs font-semibold"
+              style={{
+                borderColor: "var(--foundation)",
+                color: "var(--foundation)",
+                backgroundColor: "transparent",
+              }}
+              aria-label="Open styles cheat sheet"
+            >
+              Cheat sheet
+            </button>
+          )}
+          <span
+            className="text-xs tabular-nums"
+            style={{ color: "var(--muted-foreground)" }}
+          >
+            Step {cur + 1} of {total}
+          </span>
+        </div>
       </div>
-      <div className="flex gap-[3px]">
+      <div className="flex gap-[3px]" role="progressbar" aria-valuenow={cur + 1} aria-valuemin={1} aria-valuemax={total}>
         {Array.from({ length: total }).map((_, i) => (
-          <div
+          <button
             key={i}
-            className="h-1 flex-1 rounded-full"
+            onClick={() => onJump(i)}
+            title={`${SCREEN_TITLES[SCREENS[i]]}${i < cur ? " (completed)" : ""}`}
+            aria-label={`Go to step ${i + 1}: ${SCREEN_TITLES[SCREENS[i]]}`}
+            className="h-1 flex-1 rounded-full transition"
             style={{
               backgroundColor:
                 i < cur
@@ -215,6 +251,119 @@ function Topbar({ cur, total }: { cur: number; total: number }) {
             }}
           />
         ))}
+      </div>
+    </div>
+  );
+}
+
+function CheatSheetDrawer({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+  if (!open) return null;
+  return (
+    <div
+      className="fixed inset-0 z-50 flex"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Styles cheat sheet"
+    >
+      <button
+        onClick={onClose}
+        aria-label="Close cheat sheet"
+        className="flex-1 cursor-default"
+        style={{ backgroundColor: "rgba(9,51,84,0.35)" }}
+      />
+      <div
+        className="flex h-full w-full max-w-md flex-col overflow-y-auto border-l bg-white shadow-2xl sm:w-[420px]"
+        style={{ borderColor: "var(--warm-gray)" }}
+      >
+        <div
+          className="sticky top-0 flex items-center justify-between border-b px-5 py-3"
+          style={{
+            backgroundColor: "var(--off-white)",
+            borderColor: "var(--warm-gray)",
+          }}
+        >
+          <div
+            className="text-sm font-semibold uppercase tracking-wider"
+            style={{ color: "var(--foundation)" }}
+          >
+            Styles at a glance
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Close cheat sheet"
+            className="rounded-md border px-2.5 py-1 text-xs font-semibold"
+            style={{
+              borderColor: "var(--warm-gray)",
+              color: "var(--foundation)",
+            }}
+          >
+            Close
+          </button>
+        </div>
+        <div className="space-y-4 px-5 py-4">
+          {STYLE_ORDER.map((k) => {
+            const s = STYLES[k];
+            return (
+              <div
+                key={k}
+                className="rounded-xl border p-3"
+                style={{
+                  borderColor: s.colorVar,
+                  backgroundColor: s.softVar,
+                }}
+              >
+                <div className="mb-1 flex items-center justify-between">
+                  <div
+                    className="text-base font-bold"
+                    style={{ color: "var(--foundation)" }}
+                  >
+                    {s.name}
+                  </div>
+                  <span
+                    className="text-xs italic"
+                    style={{ color: "var(--muted-foreground)" }}
+                  >
+                    {s.tagline}
+                  </span>
+                </div>
+                <div
+                  className="mb-2 text-xs"
+                  style={{ color: "var(--foreground)" }}
+                >
+                  <b>Wants:</b> {s.wants}
+                </div>
+                <div
+                  className="mb-1 text-xs font-semibold uppercase tracking-wider"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
+                  How it sounds
+                </div>
+                <ul
+                  className="ml-4 list-disc text-xs"
+                  style={{ color: "var(--foreground)" }}
+                >
+                  {s.tells.map((t) => (
+                    <li key={t}>{t}</li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -912,6 +1061,7 @@ function SortScreen({
                     <button
                       key={k}
                       onClick={() => setTrait(trait, k)}
+                      aria-label={`Mark ${trait} as ${STYLES[k].name}`}
                       className="rounded-md border px-2.5 py-1 text-xs font-semibold"
                       style={{
                         borderColor: active
@@ -1421,26 +1571,103 @@ function ScenarioScreen({
       )}
 
       {!inProgress && (
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button
-            onClick={() => update({ scenarioChoices: [] })}
-            className="rounded-md border px-3 py-1.5 text-sm font-semibold"
-            style={{
-              borderColor: "var(--foundation)",
-              color: "var(--foundation)",
-            }}
-          >
-            Replay scenario
-          </button>
-          <span
-            className="text-xs"
-            style={{ color: "var(--muted-foreground)", alignSelf: "center" }}
-          >
-            Try a different mix and see how Jordan reacts.
-          </span>
-        </div>
+        <>
+          <ScenarioSummary choices={state.scenarioChoices} />
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              onClick={() => update({ scenarioChoices: [] })}
+              className="rounded-md border px-3 py-1.5 text-sm font-semibold"
+              style={{
+                borderColor: "var(--foundation)",
+                color: "var(--foundation)",
+              }}
+            >
+              Replay scenario
+            </button>
+            <span
+              className="text-xs"
+              style={{ color: "var(--muted-foreground)", alignSelf: "center" }}
+            >
+              Try a different mix and see how Jordan reacts.
+            </span>
+          </div>
+        </>
       )}
     </div>
+  );
+}
+
+function ScenarioSummary({ choices }: { choices: number[] }) {
+  const styleCounts: Record<StyleKey, number> = { d: 0, i: 0, s: 0, c: 0 };
+  let wells = 0;
+  let poors = 0;
+  choices.forEach((choiceIdx, i) => {
+    const c = JORDAN_SCENARIO[i].choices[choiceIdx];
+    styleCounts[c.style] += 1;
+    if (c.landed === "well") wells += 1;
+    if (c.landed === "poorly") poors += 1;
+  });
+  const topStyle = (Object.keys(styleCounts) as StyleKey[]).reduce((a, b) =>
+    styleCounts[a] >= styleCounts[b] ? a : b,
+  );
+  const topCount = styleCounts[topStyle];
+  const total = choices.length;
+  const takeaway =
+    wells === total
+      ? "You matched Jordan's register on every turn. That's the flex."
+      : wells >= 2
+        ? "Strong session. Where you didn't land well, watch how a quieter, more Steady tone changes what Jordan gives you."
+        : poors >= 2
+          ? "You defaulted to your own style more than Jordan needed. Try again — this time acknowledge the person before the task at every turn."
+          : "Mixed session. Replay it and try leading with acknowledgment before you bring structure or pace.";
+  return (
+    <Card className="mt-4">
+      <div
+        className="mb-3 text-xs font-semibold uppercase tracking-wider"
+        style={{ color: "var(--muted-foreground)" }}
+      >
+        Your pattern this run
+      </div>
+      <div className="mb-3 grid grid-cols-4 gap-2">
+        {STYLE_ORDER.map((k) => (
+          <div
+            key={k}
+            className="rounded-md border p-2 text-center"
+            style={{
+              borderColor:
+                k === topStyle && topCount > 0
+                  ? STYLES[k].colorVar
+                  : "var(--warm-gray)",
+              backgroundColor:
+                k === topStyle && topCount > 0 ? STYLES[k].softVar : "#fff",
+            }}
+          >
+            <div
+              className="text-lg font-bold"
+              style={{ color: "var(--foundation)" }}
+            >
+              {styleCounts[k]}
+            </div>
+            <div
+              className="text-[10px] uppercase tracking-wider"
+              style={{ color: "var(--muted-foreground)" }}
+            >
+              {STYLES[k].name}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div
+        className="mb-2 text-sm"
+        style={{ color: "var(--foreground)" }}
+      >
+        <b>Landed well:</b> {wells}/{total} &nbsp;·&nbsp; <b>Landed poorly:</b>{" "}
+        {poors}/{total}
+      </div>
+      <div className="text-sm" style={{ color: "var(--foundation)" }}>
+        {takeaway}
+      </div>
+    </Card>
   );
 }
 
@@ -1545,11 +1772,25 @@ function TeamScreen({
           Your team map is empty. Add one person to continue.
         </div>
       ) : (
-        <div className="space-y-3">
-          {state.team.map((m) => (
-            <TeamCard key={m.id} member={m} onRemove={() => remove(m.id)} />
-          ))}
-        </div>
+        <>
+          <div id="team-print" className="space-y-3">
+            {state.team.map((m) => (
+              <TeamCard key={m.id} member={m} onRemove={() => remove(m.id)} />
+            ))}
+          </div>
+          <div className="mt-4 flex justify-end print:hidden">
+            <button
+              onClick={() => window.print()}
+              className="rounded-md border px-4 py-2 text-sm font-semibold"
+              style={{
+                borderColor: "var(--foundation)",
+                color: "var(--foundation)",
+              }}
+            >
+              Print my team map
+            </button>
+          </div>
+        </>
       )}
     </div>
   );
@@ -1648,6 +1889,7 @@ function CapstoneScreen({
   const [loading, setLoading] = useState(false);
   const [rubricMode, setRubricMode] = useState(false);
   const [rubricChecks, setRubricChecks] = useState<Set<number>>(new Set());
+  const [copied, setCopied] = useState(false);
   const coach = useServerFn(coachMessage);
   const who = state.hookWho || "them";
 
@@ -1806,6 +2048,41 @@ function CapstoneScreen({
               )}
             </div>
           )}
+
+          {state.capstoneDraft.trim().length >= 20 && (
+            <div
+              className="mt-4 flex flex-wrap items-center gap-2 border-t pt-4"
+              style={{ borderColor: "var(--warm-gray)" }}
+            >
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(state.capstoneDraft);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+                className="rounded-md px-4 py-2 text-sm font-semibold"
+                style={{ backgroundColor: "var(--foundation)", color: "#fff" }}
+              >
+                {copied ? "Copied — paste it now" : "Copy message"}
+              </button>
+              <a
+                href={`mailto:?subject=${encodeURIComponent("Quick note")}&body=${encodeURIComponent(state.capstoneDraft)}`}
+                className="rounded-md border px-4 py-2 text-sm font-semibold"
+                style={{
+                  borderColor: "var(--foundation)",
+                  color: "var(--foundation)",
+                }}
+              >
+                Open in email
+              </a>
+              <span
+                className="text-xs"
+                style={{ color: "var(--muted-foreground)" }}
+              >
+                Send it before you close this tab. Momentum matters.
+              </span>
+            </div>
+          )}
         </Card>
       )}
     </div>
@@ -1873,6 +2150,22 @@ function TransferScreen({
         >
           Opens in Outlook, Google Calendar, or Apple Calendar. Nothing is
           emailed. Nothing is tracked.
+        </div>
+        <div
+          className="mt-4 rounded-md border border-dashed p-3 text-xs"
+          style={{
+            borderColor: "var(--warm-gray)",
+            color: "var(--foreground)",
+          }}
+        >
+          <div
+            className="mb-1 font-semibold uppercase tracking-wider"
+            style={{ color: "var(--muted-foreground)" }}
+          >
+            No calendar? No problem.
+          </div>
+          Screenshot your commitment above and text it to yourself, or save it
+          as a note on your phone. Set a reminder for a week from today.
         </div>
       </Card>
     </div>
