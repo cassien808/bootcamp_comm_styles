@@ -1060,6 +1060,24 @@ function SelfScreen({
   update: ReturnType<typeof useModuleState>["update"];
 }) {
   const s = state.selfStyle ? STYLES[state.selfStyle] : null;
+  const stressShift: Record<StyleKey, { calm: string; pressure: string }> = {
+    d: {
+      calm: "Direct but open — asks for input, then decides.",
+      pressure: "Cuts input short. Barks the ask. People feel run over.",
+    },
+    i: {
+      calm: "Warm, storytelling, brings people along.",
+      pressure: "Talks more, listens less. Overpromises to keep the mood up.",
+    },
+    s: {
+      calm: "Steady presence. Protects the team's footing.",
+      pressure: "Goes quiet. Says yes to buy peace, then resents it later.",
+    },
+    c: {
+      calm: "Precise, thoughtful, catches what others miss.",
+      pressure: "Retreats into detail. Delays a call that just needs making.",
+    },
+  };
   return (
     <div className="max-w-2xl">
       <H2>What's your default under pressure?</H2>
@@ -1091,6 +1109,40 @@ function SelfScreen({
                 The risk to watch
               </div>
               <div className="text-sm">{s.risk}</div>
+            </div>
+          </div>
+          <div
+            className="mt-4 grid gap-3 rounded-md border p-3 sm:grid-cols-2"
+            style={{
+              borderColor: "var(--warm-gray)",
+              backgroundColor: "var(--off-white)",
+            }}
+          >
+            <div>
+              <div
+                className="mb-1 text-xs font-semibold uppercase tracking-wider"
+                style={{ color: "var(--core)" }}
+              >
+                On a calm day
+              </div>
+              <div className="text-sm">{stressShift[s.key].calm}</div>
+            </div>
+            <div>
+              <div
+                className="mb-1 text-xs font-semibold uppercase tracking-wider"
+                style={{ color: "var(--rucksack)" }}
+              >
+                Under pressure
+              </div>
+              <div className="text-sm">{stressShift[s.key].pressure}</div>
+            </div>
+            <div
+              className="sm:col-span-2 text-xs"
+              style={{ color: "var(--muted-foreground)" }}
+            >
+              Most of us look like the left column most of the time. The
+              stretch is noticing when we've shifted to the right — and coming
+              back on purpose.
             </div>
           </div>
           <div className="mt-4 border-t pt-4" style={{ borderColor: "var(--warm-gray)" }}>
