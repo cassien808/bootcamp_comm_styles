@@ -1994,13 +1994,23 @@ function ScenarioScreen({
             className="space-y-2"
             role="radiogroup"
             aria-label={`Scene ${stepIdx + 1} choices`}
+            data-focus-group={`scenario-scene-${stepIdx}`}
           >
             {step.choices.map((c, i) => (
               <button
                 key={i}
-                onClick={() =>
-                  update({ scenarioChoices: [...state.scenarioChoices, i] })
-                }
+                onClick={() => {
+                  const nextChoices = [...state.scenarioChoices, i];
+                  update({ scenarioChoices: nextChoices });
+                  // Route focus: next scene's first choice, or the Replay button if done.
+                  if (nextChoices.length >= JORDAN_SCENARIO.length) {
+                    focusNext('[data-focus="scenario-replay"]');
+                  } else {
+                    focusNext(
+                      `[data-focus-group="scenario-scene-${nextChoices.length}"] [role="radio"]`,
+                    );
+                  }
+                }}
                 onKeyDown={handleRadioGroupKey}
                 role="radio"
                 aria-checked={false}
@@ -2031,6 +2041,7 @@ function ScenarioScreen({
           <div className="mt-4 flex flex-wrap gap-2">
             <button
               onClick={() => update({ scenarioChoices: [] })}
+              data-focus="scenario-replay"
               className="rounded-md border px-3 py-1.5 text-sm font-semibold"
               style={{
                 borderColor: "var(--foundation)",
