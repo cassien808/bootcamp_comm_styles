@@ -1000,8 +1000,8 @@ function summaryFor(
       return {
         title: "Scenario complete",
         items: [
-          `You made ${s.scenarioChoices.length} decisions with Jordan`,
-          "You've seen how each style choice lands with a Steady report",
+          `You made ${s.scenarioPath.length} decisions with Jordan`,
+          `Trust with Jordan: ${trustAfter(s.scenarioPath)}/${TRUST_MAX}`,
         ],
       };
     case "team":
