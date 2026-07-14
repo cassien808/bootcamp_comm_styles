@@ -121,6 +121,9 @@ export function Player() {
             state={state}
             canAdvance={canAdvance}
             isLast={cur === total - 1}
+            nextTitle={
+              cur < total - 1 ? SCREEN_TITLES[SCREENS[cur + 1]] : null
+            }
           />
         </div>
 
