@@ -2151,6 +2151,22 @@ function TransferScreen({
           Opens in Outlook, Google Calendar, or Apple Calendar. Nothing is
           emailed. Nothing is tracked.
         </div>
+        <div
+          className="mt-4 rounded-md border border-dashed p-3 text-xs"
+          style={{
+            borderColor: "var(--warm-gray)",
+            color: "var(--foreground)",
+          }}
+        >
+          <div
+            className="mb-1 font-semibold uppercase tracking-wider"
+            style={{ color: "var(--muted-foreground)" }}
+          >
+            No calendar? No problem.
+          </div>
+          Screenshot your commitment above and text it to yourself, or save it
+          as a note on your phone. Set a reminder for a week from today.
+        </div>
       </Card>
     </div>
   );
