@@ -121,6 +121,9 @@ export function Player() {
             state={state}
             canAdvance={canAdvance}
             isLast={cur === total - 1}
+            nextTitle={
+              cur < total - 1 ? SCREEN_TITLES[SCREENS[cur + 1]] : null
+            }
           />
         </div>
 
@@ -1034,19 +1037,33 @@ function ActivitySummary({
   state,
   canAdvance,
   isLast,
+  nextTitle,
 }: {
   screen: Screen;
   state: ReturnType<typeof useModuleState>["state"];
   canAdvance: boolean;
   isLast: boolean;
+  nextTitle: string | null;
 }) {
   const summary = summaryFor(screen, state);
   const shouldShow = canAdvance && !isLast && summary !== null;
   const prev = useRef(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const [announcement, setAnnouncement] = useState("");
 
   useEffect(() => {
     if (shouldShow && !prev.current) {
+      // Build a complete, screen-reader-friendly announcement covering
+      // (1) that the activity is done, (2) what the learner accomplished,
+      // and (3) the next action available.
+      const s = summary!;
+      const nextLine = nextTitle
+        ? `Next up: ${nextTitle}. Press Enter or Continue to advance, or Shift plus Tab to review this screen.`
+        : "Press Enter or Continue to advance.";
+      const message = `Activity complete. ${s.title}. ${s.items.join(". ")}. ${nextLine}`;
+      // Clear first so identical announcements on repeated visits still fire.
+      setAnnouncement("");
+      const clearT = window.setTimeout(() => setAnnouncement(message), 40);
       // Transitioned into completion — move focus to Continue after paint.
       const t = window.setTimeout(() => {
         const btn = document.querySelector<HTMLButtonElement>(
@@ -1055,18 +1072,29 @@ function ActivitySummary({
         if (btn && !btn.disabled) btn.focus();
       }, 120);
       prev.current = true;
-      return () => window.clearTimeout(t);
+      return () => {
+        window.clearTimeout(t);
+        window.clearTimeout(clearT);
+      };
     }
-    if (!shouldShow) prev.current = false;
-  }, [shouldShow, screen]);
+    if (!shouldShow) {
+      prev.current = false;
+      setAnnouncement("");
+    }
+  }, [shouldShow, screen, nextTitle, summary]);
 
   if (!shouldShow || !summary) return null;
 
   return (
+    <>
+      {/* Dedicated live region for the completion announcement. Kept
+          separate from the visual panel so screen readers get one clean,
+          complete message with what was accomplished and the next action. */}
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {announcement}
+      </div>
     <div
       role="status"
-      aria-live="polite"
-      aria-atomic="true"
       className="mt-8 rounded-2xl border p-5 sm:p-6"
       style={{
         borderColor: "var(--sonic)",
@@ -1105,6 +1133,7 @@ function ActivitySummary({
         </div>
       </div>
     </div>
+    </>
   );
 }
 
