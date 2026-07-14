@@ -2327,13 +2327,31 @@ function ScenarioScreen({
   state: ReturnType<typeof useModuleState>["state"];
   update: ReturnType<typeof useModuleState>["update"];
 }) {
-  const stepIdx = Math.min(state.scenarioChoices.length, JORDAN_SCENARIO.length - 1);
-  const inProgress = state.scenarioChoices.length < JORDAN_SCENARIO.length;
-  const step = JORDAN_SCENARIO[stepIdx];
-  const lastChoice =
-    !inProgress || state.scenarioChoices.length > 0
-      ? state.scenarioChoices[state.scenarioChoices.length - 1]
-      : null;
+  const path = state.scenarioPath;
+  const nextSceneId = currentSceneId(path);
+  const inProgress = nextSceneId !== null;
+  const currentScene = nextSceneId ? JORDAN_SCENES[nextSceneId] : null;
+  const sceneNumber = path.length + 1;
+  const trust = trustAfter(path);
+  const unlocked = !inProgress && trust >= TRUST_UNLOCK;
+
+  const pickChoice = (choiceIdx: number) => {
+    const nextPath: ScenarioTurn[] = [
+      ...path,
+      { sceneId: nextSceneId!, choiceIdx },
+    ];
+    update({ scenarioPath: nextPath });
+    const nextId = currentSceneId(nextPath);
+    if (nextId === null) {
+      focusNext('[data-focus="scenario-replay"]');
+    } else {
+      focusNext(
+        `[data-focus-group="scenario-scene-${nextPath.length}"] [role="radio"]`,
+      );
+    }
+  };
+
+  const restart = () => update({ scenarioPath: [] });
 
   return (
     <div className="max-w-2xl">
@@ -2341,35 +2359,44 @@ function ScenarioScreen({
       <Lead>
         Jordan is a Steady-style direct report. Since the reorg, they've gone
         quiet. You have this conversation to bring them back into the room.
+        Every choice you make changes what Jordan says next.
       </Lead>
       <ActivityGuide
         steps={[
           "Read what Jordan says at each scene.",
           "Pick one reply. Use Tab to reach the choices and Arrow keys to move between them.",
-          "See how Jordan reacts, what style your reply signaled, and how a stronger flex would sound.",
-          "Finish all 3 scenes. Replay any time to try a different mix.",
+          "Watch the trust meter shift after each choice — it tracks how Jordan is receiving you.",
+          `See what you meant, what Jordan heard, and a stronger flex. Land the meeting at ${TRUST_UNLOCK}+ trust to unlock the debrief.`,
         ]}
         example={`If Jordan says "I'm fine, just tired," a warm acknowledgment ("Thanks for saying so — anything from my side making it heavier?") lands better than jumping to solutions.`}
       />
 
+      <TrustMeter trust={trust} />
+
       {!inProgress && (
         <CompletionBanner
           done
-          text="You finished this conversation. Your choices and feedback are below — replay any time to try a different mix."
+          text={
+            unlocked
+              ? `You landed the meeting with ${trust}/${TRUST_MAX} trust. Debrief is unlocked below — or replay to try a different path.`
+              : `You finished with ${trust}/${TRUST_MAX} trust — under the ${TRUST_UNLOCK} needed to unlock the debrief. Replay and try leading with acknowledgment before pace or structure.`
+          }
         />
       )}
-      {inProgress && state.scenarioChoices.length > 0 && (
+      {inProgress && path.length > 0 && (
         <CompletionBanner
           done={false}
-          text={`Picking up at Scene ${stepIdx + 1} of ${JORDAN_SCENARIO.length}. Your ${state.scenarioChoices.length} earlier ${state.scenarioChoices.length === 1 ? "choice is" : "choices are"} shown below with feedback — the next scene is at the bottom.`}
+          text={`Picking up at scene ${sceneNumber}. Your ${path.length} earlier ${path.length === 1 ? "choice is" : "choices are"} shown below with feedback — the next scene is at the bottom.`}
         />
       )}
 
-      {state.scenarioChoices.map((choiceIdx, i) => {
-        const s = JORDAN_SCENARIO[i];
-        const c = s.choices[choiceIdx];
+      {path.map((turn, i) => {
+        const scene = JORDAN_SCENES[turn.sceneId];
+        const choice = scene?.choices[turn.choiceIdx];
+        if (!scene || !choice) return null;
+        const runningTrust = trustAfter(path.slice(0, i + 1));
         return (
-          <div key={i} className="mb-3 space-y-2">
+          <div key={`${turn.sceneId}-${i}`} className="mb-3 space-y-2">
             <div
               className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider"
               style={{ color: "var(--sonic)" }}
@@ -2381,7 +2408,7 @@ function ScenarioScreen({
               >
                 ✓
               </span>
-              Scene {i + 1} of {JORDAN_SCENARIO.length} — completed
+              Scene {i + 1} — {scene.title}
             </div>
             <div
               className="rounded-lg p-3 text-sm italic"
@@ -2390,7 +2417,7 @@ function ScenarioScreen({
                 color: "var(--foreground)",
               }}
             >
-              Jordan: "{s.jordan}"
+              Jordan: "{scene.jordan}"
             </div>
             <div
               className="rounded-lg p-3 text-sm"
@@ -2399,26 +2426,27 @@ function ScenarioScreen({
                 color: "var(--foundation)",
               }}
             >
-              You: "{c.reply}"
+              You: "{choice.reply}"
             </div>
-            <FeedbackBox choice={c} />
+            <FeedbackBox choice={choice} trustAfterChoice={runningTrust} />
           </div>
         );
       })}
 
-      {inProgress && (
+      {inProgress && currentScene && (
         <Card className="mt-4">
           <div
-            className="mb-2 text-xs font-semibold uppercase tracking-wider"
+            className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-wider"
             style={{ color: "var(--muted-foreground)" }}
           >
-            Scene {stepIdx + 1} of {JORDAN_SCENARIO.length}
+            <span>Scene {sceneNumber} — {currentScene.title}</span>
+            <span>Trust {trust}/{TRUST_MAX}</span>
           </div>
           <div
             className="mb-3 text-sm"
             style={{ color: "var(--muted-foreground)" }}
           >
-            {step.setup}
+            {currentScene.setup}
           </div>
           <div
             className="mb-4 rounded-lg p-3 text-sm italic"
@@ -2427,29 +2455,18 @@ function ScenarioScreen({
               color: "var(--foreground)",
             }}
           >
-            Jordan: "{step.jordan}"
+            Jordan: "{currentScene.jordan}"
           </div>
           <div
             className="space-y-2"
             role="radiogroup"
-            aria-label={`Scene ${stepIdx + 1} choices`}
-            data-focus-group={`scenario-scene-${stepIdx}`}
+            aria-label={`Scene ${sceneNumber} choices`}
+            data-focus-group={`scenario-scene-${path.length}`}
           >
-            {step.choices.map((c, i) => (
+            {currentScene.choices.map((c, i) => (
               <button
                 key={i}
-                onClick={() => {
-                  const nextChoices = [...state.scenarioChoices, i];
-                  update({ scenarioChoices: nextChoices });
-                  // Route focus: next scene's first choice, or the Replay button if done.
-                  if (nextChoices.length >= JORDAN_SCENARIO.length) {
-                    focusNext('[data-focus="scenario-replay"]');
-                  } else {
-                    focusNext(
-                      `[data-focus-group="scenario-scene-${nextChoices.length}"] [role="radio"]`,
-                    );
-                  }
-                }}
+                onClick={() => pickChoice(i)}
                 onKeyDown={handleRadioGroupKey}
                 role="radio"
                 aria-checked={false}
@@ -2476,16 +2493,13 @@ function ScenarioScreen({
 
       {!inProgress && (
         <>
-          <ScenarioSummary choices={state.scenarioChoices} />
+          <ScenarioSummary path={path} trust={trust} unlocked={unlocked} />
           <div className="mt-4 flex flex-wrap gap-2">
             <button
-              onClick={() => update({ scenarioChoices: [] })}
+              onClick={restart}
               data-focus="scenario-replay"
-              className="rounded-md border px-3 py-1.5 text-sm font-semibold"
-              style={{
-                borderColor: "var(--foundation)",
-                color: "var(--foundation)",
-              }}
+              className="rounded-md px-3 py-1.5 text-sm font-semibold text-white"
+              style={{ backgroundColor: "var(--foundation)" }}
             >
               Replay scenario
             </button>
@@ -2493,7 +2507,7 @@ function ScenarioScreen({
               className="text-xs"
               style={{ color: "var(--muted-foreground)", alignSelf: "center" }}
             >
-              Try a different mix and see how Jordan reacts.
+              Different choices open different scenes and change Jordan's trust.
             </span>
           </div>
         </>
@@ -2502,12 +2516,75 @@ function ScenarioScreen({
   );
 }
 
-function ScenarioSummary({ choices }: { choices: number[] }) {
+function TrustMeter({ trust }: { trust: number }) {
+  const range = TRUST_MAX - TRUST_MIN;
+  const pct = Math.round(((trust - TRUST_MIN) / range) * 100);
+  const color =
+    trust >= TRUST_UNLOCK
+      ? "var(--sonic)"
+      : trust >= 40
+        ? "var(--origin)"
+        : "var(--rucksack)";
+  const label =
+    trust >= TRUST_UNLOCK
+      ? "Jordan trusts the room again."
+      : trust >= 40
+        ? "Mixed — Jordan is half in the room."
+        : "Cold — Jordan has pulled back.";
+  return (
+    <div
+      className="mb-4 rounded-lg border p-3"
+      style={{ borderColor: "var(--warm-gray)", backgroundColor: "#fff" }}
+      aria-live="polite"
+    >
+      <div className="mb-1 flex items-center justify-between text-xs font-semibold uppercase tracking-wider">
+        <span style={{ color: "var(--muted-foreground)" }}>
+          Trust with Jordan
+        </span>
+        <span style={{ color }}>
+          {trust}/{TRUST_MAX}
+        </span>
+      </div>
+      <div
+        className="h-2 w-full overflow-hidden rounded-full"
+        style={{ backgroundColor: "var(--muted)" }}
+        role="progressbar"
+        aria-valuemin={TRUST_MIN}
+        aria-valuemax={TRUST_MAX}
+        aria-valuenow={trust}
+        aria-valuetext={`Trust ${trust} of ${TRUST_MAX}. ${label}`}
+      >
+        <div
+          className="h-full transition-all"
+          style={{ width: `${pct}%`, backgroundColor: color }}
+        />
+      </div>
+      <div
+        className="mt-1 text-xs"
+        style={{ color: "var(--muted-foreground)" }}
+      >
+        {label} Starts at {TRUST_START}. Unlock the debrief at {TRUST_UNLOCK}+.
+      </div>
+    </div>
+  );
+}
+
+function ScenarioSummary({
+  path,
+  trust,
+  unlocked,
+}: {
+  path: ScenarioTurn[];
+  trust: number;
+  unlocked: boolean;
+}) {
   const styleCounts: Record<StyleKey, number> = { d: 0, i: 0, s: 0, c: 0 };
   let wells = 0;
   let poors = 0;
-  choices.forEach((choiceIdx, i) => {
-    const c = JORDAN_SCENARIO[i].choices[choiceIdx];
+  path.forEach((turn) => {
+    const scene = JORDAN_SCENES[turn.sceneId];
+    const c = scene?.choices[turn.choiceIdx];
+    if (!c) return;
     styleCounts[c.style] += 1;
     if (c.landed === "well") wells += 1;
     if (c.landed === "poorly") poors += 1;
@@ -2516,22 +2593,20 @@ function ScenarioSummary({ choices }: { choices: number[] }) {
     styleCounts[a] >= styleCounts[b] ? a : b,
   );
   const topCount = styleCounts[topStyle];
-  const total = choices.length;
-  const takeaway =
-    wells === total
-      ? "You matched Jordan's register on every turn. That's the flex."
-      : wells >= 2
-        ? "Strong session. Where you didn't land well, watch how a quieter, more Steady tone changes what Jordan gives you."
-        : poors >= 2
-          ? "You defaulted to your own style more than Jordan needed. Try again — this time acknowledge the person before the task at every turn."
-          : "Mixed session. Replay it and try leading with acknowledgment before you bring structure or pace.";
+  const total = path.length;
+  const scenesVisited = new Set(path.map((t) => t.sceneId)).size;
+  const takeaway = unlocked
+    ? "You rebuilt the room. You led with acknowledgment and made your support small, specific, and dated — the pattern a Steady reader trusts."
+    : trust >= 40
+      ? "Mixed session. Where you didn't land well, watch how a quieter, more Steady tone opens Jordan up. Replay and try one more acknowledgment before pace or structure."
+      : "Jordan pulled back. Replay and try leading with acknowledgment on the opening — it changes which scenes you get to have.";
   return (
     <Card className="mt-4">
       <div
         className="mb-3 text-xs font-semibold uppercase tracking-wider"
         style={{ color: "var(--muted-foreground)" }}
       >
-        Your pattern this run
+        Debrief
       </div>
       <div className="mb-3 grid grid-cols-4 gap-2">
         {STYLE_ORDER.map((k) => (
@@ -2562,24 +2637,41 @@ function ScenarioSummary({ choices }: { choices: number[] }) {
           </div>
         ))}
       </div>
-      <div
-        className="mb-2 text-sm"
-        style={{ color: "var(--foreground)" }}
-      >
-        <b>Landed well:</b> {wells}/{total} &nbsp;·&nbsp; <b>Landed poorly:</b>{" "}
-        {poors}/{total}
+      <div className="mb-2 text-sm" style={{ color: "var(--foreground)" }}>
+        <b>Trust:</b> {trust}/{TRUST_MAX} &nbsp;·&nbsp; <b>Landed well:</b>{" "}
+        {wells}/{total} &nbsp;·&nbsp; <b>Landed poorly:</b> {poors}/{total}{" "}
+        &nbsp;·&nbsp; <b>Scenes visited:</b> {scenesVisited}/{SCENARIO_TOTAL_SCENES}
       </div>
       <div className="text-sm" style={{ color: "var(--foundation)" }}>
         {takeaway}
       </div>
+      {unlocked && (
+        <div
+          className="mt-3 rounded-lg border p-3 text-sm"
+          style={{
+            borderColor: "var(--sonic)",
+            backgroundColor: "var(--sonic-soft)",
+            color: "var(--foundation)",
+          }}
+        >
+          <div className="mb-1 text-xs font-semibold uppercase tracking-wider">
+            Debrief unlocked
+          </div>
+          The pattern that got you here: acknowledge the person before the task,
+          keep your actions small and dated, and let the next 1:1 be
+          low-pressure. Bring that same shape to your real Jordan this week.
+        </div>
+      )}
     </Card>
   );
 }
 
 function FeedbackBox({
   choice,
+  trustAfterChoice,
 }: {
-  choice: (typeof JORDAN_SCENARIO)[number]["choices"][number];
+  choice: (typeof JORDAN_SCENES)[string]["choices"][number];
+  trustAfterChoice: number;
 }) {
   const color =
     choice.landed === "well"
@@ -2593,17 +2685,40 @@ function FeedbackBox({
       : choice.landed === "ok"
         ? "var(--origin-soft)"
         : "var(--rucksack-soft)";
+  const deltaLabel =
+    choice.trustDelta > 0
+      ? `+${choice.trustDelta}`
+      : `${choice.trustDelta}`;
   return (
     <div
       className="rounded-lg border p-3 text-sm"
-      style={{ borderColor: color, backgroundColor: soft, color: "var(--foundation)" }}
+      style={{
+        borderColor: color,
+        backgroundColor: soft,
+        color: "var(--foundation)",
+      }}
     >
-      <div className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider">
+      <div className="mb-2 flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wider">
         <StyleBadge style={choice.style} size="sm" />
         <span>Landed {choice.landed}</span>
+        <span
+          className="rounded-full px-2 py-0.5"
+          style={{ backgroundColor: "#fff", color }}
+        >
+          Trust {deltaLabel} → {trustAfterChoice}
+        </span>
+      </div>
+      <div className="mb-1">
+        <b>What you meant:</b> {choice.meant}
+      </div>
+      <div className="mb-1">
+        <b>What Jordan heard:</b> {choice.heard}
       </div>
       <div className="mb-1">
         <b>What Jordan does:</b> {choice.reaction}
+      </div>
+      <div className="mb-1">
+        <b>Stronger flex:</b> <span className="italic">"{choice.stronger}"</span>
       </div>
       <div>
         <b>Coach:</b> {choice.coach}
