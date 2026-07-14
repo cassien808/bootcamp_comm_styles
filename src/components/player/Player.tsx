@@ -602,7 +602,7 @@ function gate(
     case "rewriter":
       return STYLE_ORDER.every((k) => (s.rewriter[k]?.score ?? 0) >= 3);
     case "scenario":
-      return s.scenarioChoices.length >= JORDAN_SCENARIO.length;
+      return s.scenarioPath.length > 0 && currentSceneId(s.scenarioPath) === null;
     case "team":
       return s.team.length >= 1; // encouraged: 3-5, minimum 1 to continue
     case "capstone":
