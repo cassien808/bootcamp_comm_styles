@@ -189,6 +189,30 @@ select:focus-visible,
   border-radius: 999px;
 }
 
+/* Radio-group members in the activities need the same strong ring; the base
+   rule covers them, but browsers vary on focus-visible for programmatically
+   focused elements. This keeps the ring visible when focus lands via keyboard
+   activation from our custom radiogroup handler. */
+[role="radiogroup"] [role="radio"]:focus,
+[role="radiogroup"] [role="radio"]:focus-visible {
+  outline-style: solid !important;
+  outline-width: 3px !important;
+  outline-color: #326CDB !important;
+  outline-offset: 2px !important;
+  border-radius: 6px;
+}
+
+/* Programmatic focus target for feedback panels (tabindex=-1). Keep the ring
+   visible so keyboard learners know focus moved there. */
+[data-focus="rewriter-score"]:focus,
+[data-focus="rewriter-score"]:focus-visible {
+  outline-style: solid !important;
+  outline-width: 3px !important;
+  outline-color: #326CDB !important;
+  outline-offset: 2px !important;
+  border-radius: 8px;
+}
+
 /* Full-screen scrim button in the drawer shouldn't render a focus ring. */
 [role="dialog"] > button[aria-label="Close cheat sheet"]:first-child:focus-visible {
   outline: none !important;
