@@ -229,7 +229,7 @@ function Topbar({
           className="text-xs font-semibold uppercase tracking-widest"
           style={{ color: "var(--foundation)" }}
         >
-          Communication Styles for People Leaders
+          Communication Styles for Supervisors/Managers
         </span>
         <div className="flex items-center gap-3">
           {cur >= 3 && (
