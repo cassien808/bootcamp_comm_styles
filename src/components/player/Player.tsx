@@ -1565,6 +1565,30 @@ function RewriterScreen({
         >
           {STYLES[active].tagline}
         </div>
+        {activeDone && (
+          <div
+            className="mb-3 flex items-start gap-2 rounded-md border p-2 text-xs"
+            style={{
+              borderColor: "var(--sonic)",
+              backgroundColor: "var(--sonic-soft)",
+              color: "var(--foundation)",
+            }}
+            role="status"
+          >
+            <span
+              aria-hidden="true"
+              className="grid h-4 w-4 shrink-0 place-items-center rounded-full text-[10px] font-bold"
+              style={{ backgroundColor: "var(--sonic)", color: "#fff" }}
+            >
+              ✓
+            </span>
+            <span>
+              <b>Already completed</b> — you landed {entry?.score}/5 tells for{" "}
+              {STYLES[active].name}. Your last draft and feedback are here. Edit
+              and tap <b>Get feedback</b> again to try a new take.
+            </span>
+          </div>
+        )}
         <textarea
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
