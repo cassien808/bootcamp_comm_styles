@@ -557,6 +557,33 @@ function StylePicker({
   label?: string;
 }) {
   return (
+    <StylePickerImpl value={value} onChange={onChange} label={label} />
+  );
+}
+function CompletionBanner({ done, text }: { done: boolean; text: string }) {
+  return (
+    <div
+      className="mb-4 flex items-start gap-3 rounded-lg border p-3"
+      style={{
+        borderColor: done ? "var(--sonic)" : "var(--core)",
+        backgroundColor: done ? "var(--sonic-soft)" : "var(--sky)",
+        color: "var(--foundation)",
+      }}
+      role="status"
+    >
+      <span
+        aria-hidden="true"
+        className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full text-sm font-bold"
+        style={{ backgroundColor: done ? "var(--sonic)" : "var(--core)", color: "#fff" }}
+      >
+        {done ? "✓" : "…"}
+      </span>
+      <span className="text-sm">{text}</span>
+    </div>
+  );
+}
+function StylePickerImpl({ value, onChange, label }: { value: StyleKey | null; onChange: (k: StyleKey) => void; label?: string; }) {
+  return (
     <div>
       {label && (
         <div
@@ -1351,6 +1378,10 @@ function RewriterScreen({
   };
 
   const entry = state.rewriter[active];
+  const doneCount = STYLE_ORDER.filter(
+    (k) => (state.rewriter[k]?.score ?? 0) >= 3,
+  ).length;
+  const allDone = doneCount === STYLE_ORDER.length;
   return (
     <div className="max-w-2xl">
       <H2>Rewrite one message four ways</H2>
@@ -1359,6 +1390,16 @@ function RewriterScreen({
         it sounds like that style, then tap <b>Get feedback</b>. Land 3 of 5
         tells for each style to finish.
       </Lead>
+      {doneCount > 0 && (
+        <CompletionBanner
+          done={allDone}
+          text={
+            allDone
+              ? "All four rewrites landed. Tap any tab to review your work — nothing gets erased."
+              : `You've already finished ${doneCount} of 4 rewrites. Completed tabs show a check — feel free to open one to reread your feedback.`
+          }
+        />
+      )}
       <Card className="mb-4">
         <div
           className="mb-1 text-xs font-semibold uppercase tracking-wider"
@@ -1379,14 +1420,36 @@ function RewriterScreen({
             <button
               key={k}
               onClick={() => setActive(k)}
+              aria-label={
+                done
+                  ? `${STYLES[k].name} — completed`
+                  : `${STYLES[k].name} — not yet completed`
+              }
               className="flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-semibold"
               style={{
-                borderColor: isActive ? STYLES[k].colorVar : "var(--warm-gray)",
-                backgroundColor: isActive ? STYLES[k].softVar : "#fff",
+                borderColor: isActive
+                  ? STYLES[k].colorVar
+                  : done
+                    ? "var(--sonic)"
+                    : "var(--warm-gray)",
+                backgroundColor: isActive
+                  ? STYLES[k].softVar
+                  : done
+                    ? "var(--sonic-soft)"
+                    : "#fff",
                 color: "var(--foundation)",
               }}
             >
-              {STYLES[k].name} {done && "✓"}
+              {done && (
+                <span
+                  aria-hidden="true"
+                  className="grid h-4 w-4 place-items-center rounded-full text-[10px] font-bold"
+                  style={{ backgroundColor: "var(--sonic)", color: "#fff" }}
+                >
+                  ✓
+                </span>
+              )}
+              {STYLES[k].name}
             </button>
           );
         })}
@@ -1491,6 +1554,13 @@ function ScenarioScreen({
         Jordan is a Steady-style direct report. Since the reorg, they've gone
         quiet. You have this conversation to bring them back into the room.
       </Lead>
+
+      {!inProgress && (
+        <CompletionBanner
+          done
+          text="You finished this conversation. Your choices and feedback are below — replay any time to try a different mix."
+        />
+      )}
 
       {state.scenarioChoices.map((choiceIdx, i) => {
         const s = JORDAN_SCENARIO[i];
