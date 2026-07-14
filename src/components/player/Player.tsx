@@ -1875,6 +1875,7 @@ function CapstoneScreen({
   const [loading, setLoading] = useState(false);
   const [rubricMode, setRubricMode] = useState(false);
   const [rubricChecks, setRubricChecks] = useState<Set<number>>(new Set());
+  const [copied, setCopied] = useState(false);
   const coach = useServerFn(coachMessage);
   const who = state.hookWho || "them";
 
@@ -2031,6 +2032,41 @@ function CapstoneScreen({
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {state.capstoneDraft.trim().length >= 20 && (
+            <div
+              className="mt-4 flex flex-wrap items-center gap-2 border-t pt-4"
+              style={{ borderColor: "var(--warm-gray)" }}
+            >
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(state.capstoneDraft);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+                className="rounded-md px-4 py-2 text-sm font-semibold"
+                style={{ backgroundColor: "var(--foundation)", color: "#fff" }}
+              >
+                {copied ? "Copied — paste it now" : "Copy message"}
+              </button>
+              <a
+                href={`mailto:?subject=${encodeURIComponent("Quick note")}&body=${encodeURIComponent(state.capstoneDraft)}`}
+                className="rounded-md border px-4 py-2 text-sm font-semibold"
+                style={{
+                  borderColor: "var(--foundation)",
+                  color: "var(--foundation)",
+                }}
+              >
+                Open in email
+              </a>
+              <span
+                className="text-xs"
+                style={{ color: "var(--muted-foreground)" }}
+              >
+                Send it before you close this tab. Momentum matters.
+              </span>
             </div>
           )}
         </Card>
