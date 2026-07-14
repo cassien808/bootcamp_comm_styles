@@ -1415,7 +1415,11 @@ function RewriterScreen({
   state: ReturnType<typeof useModuleState>["state"];
   update: ReturnType<typeof useModuleState>["update"];
 }) {
-  const [active, setActive] = useState<StyleKey>("d");
+  // Resume on the first incomplete style so returners land where there's work left.
+  const firstIncomplete = STYLE_ORDER.find(
+    (k) => (state.rewriter[k]?.score ?? 0) < 3,
+  );
+  const [active, setActive] = useState<StyleKey>(firstIncomplete ?? "d");
   const [draft, setDraft] = useState(state.rewriter[active]?.draft ?? "");
   const [loading, setLoading] = useState(false);
   const coach = useServerFn(coachMessage);
@@ -1458,6 +1462,10 @@ function RewriterScreen({
     (k) => (state.rewriter[k]?.score ?? 0) >= 3,
   ).length;
   const allDone = doneCount === STYLE_ORDER.length;
+  const activeDone = (entry?.score ?? 0) >= 3;
+  const doneStyles = STYLE_ORDER.filter(
+    (k) => (state.rewriter[k]?.score ?? 0) >= 3,
+  );
   return (
     <div className="max-w-2xl">
       <H2>Rewrite one message four ways</H2>
@@ -1475,6 +1483,19 @@ function RewriterScreen({
               : `You've already finished ${doneCount} of 4 rewrites. Completed tabs show a check — feel free to open one to reread your feedback.`
           }
         />
+      )}
+      {doneCount > 0 && !allDone && (
+        <div
+          className="mb-3 text-xs"
+          style={{ color: "var(--muted-foreground)" }}
+        >
+          <span className="font-semibold" style={{ color: "var(--foundation)" }}>
+            Already finished:
+          </span>{" "}
+          {doneStyles
+            .map((k) => `${STYLES[k].name} (${state.rewriter[k]?.score}/5)`)
+            .join(" · ")}
+        </div>
       )}
       <Card className="mb-4">
         <div
