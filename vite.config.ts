@@ -17,3 +17,10 @@ export default defineConfig({
     plugins: [mcpPlugin()],
   },
 });
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+export default defineConfig({
+  base: '/bootcamp_comm_styles/',
+  plugins: [react()],
+})
