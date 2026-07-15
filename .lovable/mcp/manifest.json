@@ -1,0 +1,121 @@
+{
+  "version": 1,
+  "sdk_version": "0.22.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "none"
+  },
+  "mcp": {
+    "server": {
+      "name": "communication-styles-mcp",
+      "version": "0.1.0",
+      "title": "Communication Styles for Supervisors/Managers"
+    },
+    "tools": [
+      {
+        "name": "list_communication_styles",
+        "title": "List communication styles",
+        "description": "List the four DISC-based communication styles (Dominant, Influencer, Steady, Conscientious) with each style's tagline, what that reader wants, their gift, risk, blind spot, and the five 'tells' that show a message is written in that style.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_communication_style",
+        "title": "Get one communication style",
+        "description": "Get full detail for one DISC style by its key: 'd' (Dominant), 'i' (Influencer), 's' (Steady), or 'c' (Conscientious). Returns the tagline, what the reader wants, gift, risk, blind spot, the five tells, traits, and a reflection prompt.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string",
+              "enum": [
+                "d",
+                "i",
+                "s",
+                "c"
+              ],
+              "description": "Style key: d, i, s, or c."
+            }
+          },
+          "required": [
+            "key"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_sample_emails",
+        "title": "List sample emails by style",
+        "description": "Return the four sample workplace emails used in the 'spot it in the wild' activity. Each email includes the sender, subject, body, the correct DISC style answer, and the tell that gives that style away. Useful as training examples for communication-style classification.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "coach_message",
+        "title": "Coach a message for a target style",
+        "description": "Score a leader's draft message against a target reader's DISC style. Returns which of the five style 'tells' the message hits and misses, specific written feedback, and one suggested rewrite tuned for that style. Uses AI coaching; may return a fallback message if the coach is unavailable.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "targetStyle": {
+              "type": "string",
+              "enum": [
+                "d",
+                "i",
+                "s",
+                "c"
+              ],
+              "description": "Reader's default style: d, i, s, or c."
+            },
+            "message": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4000,
+              "description": "The draft message the leader wrote."
+            },
+            "context": {
+              "description": "Optional context about the reader or situation.",
+              "type": "string",
+              "maxLength": 1000
+            }
+          },
+          "required": [
+            "targetStyle",
+            "message"
+          ]
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
