@@ -88,10 +88,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         property: "og:description",
         content:
-          "Practice reading, flexing, and writing across the four communication styles.",
+          "A guided practice module for supervisors and managers. Learn the four communication styles, flex your approach, and write a message that lands.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Communication Styles for Supervisors/Managers" },
+      { name: "twitter:description", content: "A guided practice module for supervisors and managers. Learn the four communication styles, flex your approach, and write a message that lands." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/691e6212-caab-4fc8-a5c4-d39652834c7d/id-preview-974131a9--2c35a71e-9e1a-4cf4-8e6f-174ca571772d.lovable.app-1784127611351.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/691e6212-caab-4fc8-a5c4-d39652834c7d/id-preview-974131a9--2c35a71e-9e1a-4cf4-8e6f-174ca571772d.lovable.app-1784127611351.png" },
     ],
     links: [
       {
